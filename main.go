@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	. "github.com/viorelyo/tlsExperiment/model"
 	"net"
@@ -29,22 +28,14 @@ func connectToServer(srvAddr string) net.TCPConn {
 // https://tls.ulfheim.net/
 // https://tools.ietf.org/html/rfc5246#section-7.4.1.4
 
-func sendToServer(conn net.TCPConn, msgHex string) {
+func sendToServer(conn net.TCPConn, payload []byte) {
+	fmt.Println("Sending 'Client Hello' to server")
 
-	//var msg []byte
-	fmt.Println("Sending 'Client Hello' to server:", msgHex)
-	payload, err := hex.DecodeString(msgHex)
-	if err != nil {
-		println("DecodeString failed:", err.Error())
-		os.Exit(1)
-	}
-
-	_, err = conn.Write([]byte(payload))
+	_, err := conn.Write(payload)
 	if err != nil {
 		println("Write to server failed:", err.Error())
 		os.Exit(1)
 	}
-	//println("write to server = ", msg)
 }
 
 func readFromServer(conn net.TCPConn) []byte {
@@ -62,17 +53,17 @@ func readFromServer(conn net.TCPConn) []byte {
 //func parseRecordHeader(answer [5]byte) RecordHeader {
 func parseRecordHeader(answer []byte) RecordHeader {
 	recordHeader := RecordHeader{}
-	recordHeader.Ttype = answer[0]
-	copy(recordHeader.Protocol_version[:], answer[1:3])
-	copy(recordHeader.Footer[:], answer[3:5])
+	recordHeader.Type = answer[0]
+	copy(recordHeader.ProtocolVersion[:], answer[1:3])
+	copy(recordHeader.Length[:], answer[3:5])
 	recordHeader.FooterInt = binary.BigEndian.Uint16(answer[3:5])
 	return recordHeader
 }
 
 func parseHandshakeHeader(answer []byte) HandshakeHeader {
 	handshakeHeader := HandshakeHeader{}
-	handshakeHeader.Message_type = answer[0]
-	copy(handshakeHeader.Footer[:], answer[1:4])
+	handshakeHeader.MessageType = answer[0]
+	copy(handshakeHeader.MessageLength[:], answer[1:4])
 	handshakeHeader.FooterInt = binary.BigEndian.Uint32(append([]byte{0}, answer[1:4]...))
 
 	return handshakeHeader
@@ -142,26 +133,16 @@ func parseServerCertificate(answer []byte) (ServerCertificate, []byte) {
 	return serverCertificate, answer[offset:]
 }
 
-//func initClientHello() []byte {
-//	//clientHello := ClientHello{}
-//	//
-//	//recordHeader := RecordHeader{}
-//	//recordHeader.Ttype = 16
-//	//recordHeader.Protocol_version =
-//
-//	//clientHello.RecordHeader = recordHeader
-//
-//
-//	// return
-//}
+
 
 func main() {
 	srvAddr := "ubbcluj.ro:443"
 	conn := connectToServer(srvAddr)
 
 	//payload_http := "GET / HTTP/1.1\r\nHost: www.heise.de\r\nSome: hedder\r\n\r\n"
-	clientHelloPayloadHex := "16030100a5010000a10303000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000020cca8cca9c02fc030c02bc02cc013c009c014c00a009c009d002f0035c012000a010000580000001800160000136578616d706c652e756c666865696d2e6e6574000500050100000000000a000a0008001d001700180019000b00020100000d0012001004010403050105030601060302010203ff0100010000120000"
-	sendToServer(conn, clientHelloPayloadHex)
+	clientHello := MakeClientHello()
+
+	sendToServer(conn, clientHello.GetClientHelloPayload())
 	var answer []byte
 	answer = readFromServer(conn)
 
@@ -172,4 +153,9 @@ func main() {
 	fmt.Println(serverCertificate)
 
 	conn.Close()
+
+
+	//for _, k := range clientHello.GetClientHelloPayload() {
+	//	fmt.Printf("%x ", k)
+	//}
 }

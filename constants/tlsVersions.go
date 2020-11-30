@@ -7,21 +7,21 @@ type TlsVersionConverter struct {
 func MakeTlsVersionConverter() TlsVersionConverter {
 	tlsVersionConverter := TlsVersionConverter{}
 	tlsVersionConverter.TlsVersions = map[string][2]byte {
-		"TLS 1.0": [2]byte {3, 1},
-		"TLS 1.1": [2]byte {3, 2},
-		"TLS 1.2": [2]byte {3, 3},
-		"TLS 1.3": [2]byte {3, 4},
+		"TLS 1.0": {0x03, 0x01},
+		"TLS 1.1": {0x03, 0x02},
+		"TLS 1.2": {0x03, 0x03},
+		"TLS 1.3": {0x03, 0x04},
 	}
 
 	return tlsVersionConverter
 }
 
-func (tlsVersionConverter TlsVersionConverter)GetByteCodeForVersion(version string) [2]byte {
-	return tlsVersionConverter.TlsVersions[version]
+func (converter TlsVersionConverter)GetByteCodeForVersion(version string) [2]byte {
+	return converter.TlsVersions[version]
 }
 
-func (tlsVersionConverter TlsVersionConverter)GetVersionForByteCode(version [2]byte) string {
-	for k, v := range tlsVersionConverter.TlsVersions {
+func (converter TlsVersionConverter)GetVersionForByteCode(version [2]byte) string {
+	for k, v := range converter.TlsVersions {
 		if v == version {
 			return k
 		}
