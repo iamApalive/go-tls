@@ -1,6 +1,9 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/viorelyo/tlsExperiment/constants"
+)
 
 type ExtensionRenegotiationInfo struct {
 	Info    [2]byte
@@ -22,6 +25,14 @@ type ServerHello struct {
 	ExtensionRenegotiationInfo ExtensionRenegotiationInfo
 }
 
+func (extensionRenegotiationInfo ExtensionRenegotiationInfo) String() string {
+	out := fmt.Sprintf("  Extension Renegotiation Info\n")
+	out += fmt.Sprintf("    info:............: %6x\n", extensionRenegotiationInfo.Info)
+	out += fmt.Sprintf("    length:..........: %6x\n", extensionRenegotiationInfo.Length)
+	out += fmt.Sprintf("    payload:.........: %6x\n", extensionRenegotiationInfo.Payload)
+	return out
+}
+
 func (serverHello ServerHello) String() string {
 	out := fmt.Sprintf("Server Hello\n")
 	out += fmt.Sprint(serverHello.RecordHeader)
@@ -31,7 +42,7 @@ func (serverHello ServerHello) String() string {
 	out += fmt.Sprintf("  Session ID length..: %6x\n", serverHello.SessionIDLenght)
 	out += fmt.Sprintf("  Session ID lengthI.: %6d\n", serverHello.SessionIDLenghtInt)
 	out += fmt.Sprintf("  Session ID.........: %6x\n", serverHello.SessionID)
-	out += fmt.Sprintf("  CipherSuite........: %6x\n", serverHello.CipherSuite)
+	out += fmt.Sprintf("  CipherSuite........: %6x - %s\n", serverHello.CipherSuite, constants.GCipherSuites.GetSuiteForByteCode(serverHello.CipherSuite))
 	out += fmt.Sprintf("  CompressionMethod..: %6x\n", serverHello.CompressionMethod)
 	out += fmt.Sprintf("  ExtensionLength....: %6x\n", serverHello.ExtensionLength)
 	//out += fmt.Sprintf("s%", serverHello.extensionRenegotiationInfo)

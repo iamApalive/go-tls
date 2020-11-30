@@ -139,7 +139,6 @@ func main() {
 	srvAddr := "ubbcluj.ro:443"
 	conn := connectToServer(srvAddr)
 
-	//payload_http := "GET / HTTP/1.1\r\nHost: www.heise.de\r\nSome: hedder\r\n\r\n"
 	clientHello := MakeClientHello()
 
 	sendToServer(conn, clientHello.GetClientHelloPayload())
@@ -153,9 +152,4 @@ func main() {
 	fmt.Println(serverCertificate)
 
 	conn.Close()
-
-
-	//for _, k := range clientHello.GetClientHelloPayload() {
-	//	fmt.Printf("%x ", k)
-	//}
 }
