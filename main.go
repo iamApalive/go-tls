@@ -119,7 +119,6 @@ func parseServerCertificate(answer []byte) (ServerCertificate, []byte) {
 	offset += 3
 	copy(serverCertificate.CertificateLengthN[:], answer[offset:offset+3])
 	serverCertificate.CertificateLengthInt = binary.BigEndian.Uint32(append([]byte{0}, serverCertificate.CertificateLength[0:3]...))
-	println(serverCertificate.CertificateLengthInt)
 	//copy(serverCertificate.certificate, answer[offset+11:offset+11+serverCertificate.certificatLenghtInt])
 
 	return serverCertificate, answer[offset:]
