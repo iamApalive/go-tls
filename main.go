@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/viorelyo/tlsExperiment/helpers"
 	. "github.com/viorelyo/tlsExperiment/model"
 	"net"
 	"os"
@@ -56,7 +57,7 @@ func parseRecordHeader(answer []byte) RecordHeader {
 	recordHeader.Type = answer[0]
 	copy(recordHeader.ProtocolVersion[:], answer[1:3])
 	copy(recordHeader.Length[:], answer[3:5])
-	recordHeader.FooterInt = binary.BigEndian.Uint16(answer[3:5])
+
 	return recordHeader
 }
 
@@ -64,20 +65,11 @@ func parseHandshakeHeader(answer []byte) HandshakeHeader {
 	handshakeHeader := HandshakeHeader{}
 	handshakeHeader.MessageType = answer[0]
 	copy(handshakeHeader.MessageLength[:], answer[1:4])
-	handshakeHeader.FooterInt = binary.BigEndian.Uint32(append([]byte{0}, answer[1:4]...))
 
 	return handshakeHeader
 }
 
-func parseExtensionRenegotiationInfo(answer []byte) ExtensionRenegotiationInfo {
-	extensionRenegotiationInfo := ExtensionRenegotiationInfo{}
-	copy(extensionRenegotiationInfo.Info[:], answer[:2])
-	copy(extensionRenegotiationInfo.Length[:], answer[2:4])
-	copy(extensionRenegotiationInfo.Payload[:], answer[4:5])
-	return extensionRenegotiationInfo
-}
-
-func parseHelloServer(answer []byte) (ServerHello, []byte) {
+func parseHelloServer(answer []byte) (ServerHello, []byte, error) {
 	println("Parsing Server Hello")
 	offset := 0
 	serverHello := ServerHello{}
@@ -90,25 +82,25 @@ func parseHelloServer(answer []byte) (ServerHello, []byte) {
 
 	copy(serverHello.ServerVersion[:], answer[offset:offset+2])
 	copy(serverHello.ServerRandom[:], answer[offset+2:offset+34])
-	copy(serverHello.SessionIDLenght[:], answer[offset+34:offset+35])
+	copy(serverHello.SessionIDLength[:], answer[offset+34:offset+35])
 
-	serverHello.SessionIDLenghtInt = int(serverHello.SessionIDLenght[0])
-	if serverHello.SessionIDLenghtInt > 0 {
-		serverHello.SessionID = answer[offset+35 : offset+serverHello.SessionIDLenghtInt+35]
-		offset += serverHello.SessionIDLenghtInt
-		println("copy sessionIDLenght copied len:", serverHello.SessionIDLenghtInt)
+	sessionIDLenghtInt := int(serverHello.SessionIDLength[0])
+	if sessionIDLenghtInt > 0 {
+		serverHello.SessionID = answer[offset+35 : offset+sessionIDLenghtInt+35]
+		offset += sessionIDLenghtInt
+		//println("copy sessionIDLenght copied len:", serverHello.SessionIDLenghtInt)
 	}
 
 	copy(serverHello.CipherSuite[:], answer[offset+35:offset+37])
 	copy(serverHello.CompressionMethod[:], answer[offset+37:offset+38])
-	copy(serverHello.ExtensionLength[:], answer[offset+38:offset+40])
-	//recordHeader.footerInt = binary.BigEndian.Uint16(answer[3:5]) // what is this?
-	offset += 40
+	offset += 38
 
-	serverHello.ExtensionRenegotiationInfo = parseExtensionRenegotiationInfo(answer[offset:])
-	offset += 5
+	serverHelloLength := int(helpers.ConvertByteArrayToInt(serverHello.RecordHeader.Length[:]))
+	if serverHelloLength != (offset - 5) {		// 5 is the length of RecordHeader
+		return serverHello, nil, helpers.ServerHelloParsingError()
+	}
 
-	return serverHello, answer[offset:]
+	return serverHello, answer[offset:], nil
 }
 
 func parseServerCertificate(answer []byte) (ServerCertificate, []byte) {
@@ -138,6 +130,7 @@ func parseServerCertificate(answer []byte) (ServerCertificate, []byte) {
 func main() {
 	srvAddr := "ubbcluj.ro:443"
 	conn := connectToServer(srvAddr)
+	defer conn.Close()
 
 	clientHello := MakeClientHello()
 
@@ -145,11 +138,13 @@ func main() {
 	var answer []byte
 	answer = readFromServer(conn)
 
-	serverHello, answer := parseHelloServer(answer)
+	serverHello, answer, err := parseHelloServer(answer)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	fmt.Println(serverHello)
 
 	serverCertificate, answer := parseServerCertificate(answer)
 	fmt.Println(serverCertificate)
-
-	conn.Close()
 }

@@ -15,7 +15,6 @@ type ClientHello struct {
 	CipherSuites               []byte
 	CompressionMethodsLength   [1]byte
 	CompressionMethods         []byte
-	// extensionLength            [2]byte
 }
 
 func MakeClientHello() ClientHello {
@@ -34,7 +33,6 @@ func MakeClientHello() ClientHello {
 	clientHello.SessionID = [1]byte{0x00}
 
 	suitesByteCode := constants.GCipherSuites.GetSuiteByteCodes(constants.GCipherSuites.GetAllSuites())
-
 
 	clientHello.CipherSuites = suitesByteCode
 	clientHello.CipherSuitesLength = helpers.ConvertIntToByteArray(uint16(len(suitesByteCode)))
