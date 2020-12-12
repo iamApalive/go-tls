@@ -13,10 +13,10 @@ func ConvertIntToByteArray(nr uint16) [2]byte {
 	return tmp
 }
 
-func ConvertByteArrayToInt16(byteArray []byte) uint16 {
-	return binary.BigEndian.Uint16(byteArray)
+func ConvertByteArrayToUInt16(byteArray [2]byte) uint16 {
+	return binary.BigEndian.Uint16(byteArray[:])
 }
 
-func ConvertByteArrayToInt32(byteArray []byte) uint32 {
-	return binary.BigEndian.Uint32(byteArray)
+func Convert3ByteArrayToUInt32(byteArray [3]byte) uint32 {
+	return binary.BigEndian.Uint32(append([]byte{0}, byteArray[:]...))
 }

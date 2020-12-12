@@ -80,7 +80,13 @@ func main() {
 	}
 	fmt.Println(serverHello)
 
-	_, answer = ParseServerCertificate(answer)
-	//serverCertificate, answer := ParseServerCertificate(answer)
-	//fmt.Println(serverCertificate)
+	serverCertificate, answer := ParseServerCertificate(answer)
+	fmt.Println(serverCertificate)
+
+	serverKeyExchange, answer, err := ParseServerKeyExchange(answer)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(serverKeyExchange)
+	}
 }

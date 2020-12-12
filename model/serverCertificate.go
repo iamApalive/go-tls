@@ -5,9 +5,17 @@ import (
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
 
+// TODO maybe deserialize Certificate Info
 type Certificate struct {
 	Length  [3]byte
 	Content []byte
+}
+
+func (certificate Certificate) String() string {
+	out := fmt.Sprintf("Certificate\n")
+	out += fmt.Sprintf("  Certificate Length.: %x\n", certificate.Length)
+	out += fmt.Sprintf("  Certificate........: %x\n", certificate.Content)
+	return out
 }
 
 type ServerCertificate struct {
@@ -28,10 +36,10 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte) {
 	offset += 4
 
 	copy(serverCertificate.CertificateLength[:], answer[offset:offset+3])
-	totalCertificateLengthInt := helpers.ConvertByteArrayToInt32(append([]byte{0}, serverCertificate.CertificateLength[0:3]...))
+	totalCertificateLengthInt := helpers.Convert3ByteArrayToUInt32(serverCertificate.CertificateLength)
 	offset += 3
 
-	fmt.Println(totalCertificateLengthInt)
+	//fmt.Println(totalCertificateLengthInt)
 
 	// Parsing list of certificates
 	var readCertificateLength uint32
@@ -41,8 +49,8 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte) {
 		copy(currentCertificate.Length[:], answer[offset:offset+3])
 		offset += 3
 
-		crtCertificateLengthInt := helpers.ConvertByteArrayToInt32(append([]byte{0}, currentCertificate.Length[0:3]...))
-		fmt.Println(crtCertificateLengthInt)
+		crtCertificateLengthInt := helpers.Convert3ByteArrayToUInt32(currentCertificate.Length)
+		//fmt.Println(crtCertificateLengthInt)
 
 		currentCertificate.Content = answer[offset:offset+crtCertificateLengthInt]
 		offset += crtCertificateLengthInt
@@ -59,8 +67,10 @@ func (serverCertificate ServerCertificate) String() string {
 	out += fmt.Sprint(serverCertificate.RecordHeader)
 	out += fmt.Sprint(serverCertificate.HandshakeHeader)
 	out += fmt.Sprintf("  Certificate Lenght.: %x\n", serverCertificate.CertificateLength)
-	// TODO Display list of certificates
-	//out += fmt.Sprintf("  Certificate LenghtN: %x\n", serverCertificate.CertificateLengthN)
-	//out += fmt.Sprintf("  Certificate........: %6x\n", serverCertificate.Certificate)
+	out += fmt.Sprintf("Certificates:\n")
+
+	for _, c := range serverCertificate.Certificates {
+		out += fmt.Sprint(c)
+	}
 	return out
 }

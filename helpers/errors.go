@@ -1,16 +1,24 @@
 package helpers
 
 type ParsingError struct {
-	IsServerHelloParsingError bool
+	IsServerHelloParsingError       bool
+	IsServerKeyExchangeParsingError bool
 }
 
 func (pe *ParsingError) Error() string {
 	if pe.IsServerHelloParsingError {
 		return "ServerHello parsing error encountered!"
 	}
+	if pe.IsServerKeyExchangeParsingError {
+		return "ServerKeyExchange parsing error encountered!"
+	}
 	return "Undefined error"
 }
 
 func ServerHelloParsingError() error {
 	return &ParsingError{IsServerHelloParsingError: true}
+}
+
+func ServerKeyExchangeParsingError() error {
+	return &ParsingError{IsServerKeyExchangeParsingError: true}
 }

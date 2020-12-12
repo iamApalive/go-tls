@@ -44,9 +44,9 @@ func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
 	copy(serverHello.CompressionMethod[:], answer[offset+37:offset+38])
 	offset += 38
 
-	serverHelloLength := int(helpers.ConvertByteArrayToInt16(serverHello.RecordHeader.Length[:]))
+	serverHelloLength := int(helpers.ConvertByteArrayToUInt16(serverHello.RecordHeader.Length))
 	if serverHelloLength != (offset - 5) {		// 5 is the length of RecordHeader
-		return serverHello, nil, helpers.ServerHelloParsingError()
+		return serverHello, answer, helpers.ServerHelloParsingError()
 	}
 
 	return serverHello, answer[offset:], nil
