@@ -12,11 +12,20 @@ type RecordHeader struct {
 	Length          [2]byte
 }
 
+func ParseRecordHeader(answer []byte) RecordHeader {
+	recordHeader := RecordHeader{}
+	recordHeader.Type = answer[0]
+	copy(recordHeader.ProtocolVersion[:], answer[1:3])
+	copy(recordHeader.Length[:], answer[3:5])
+
+	return recordHeader
+}
+
 func (recordHeader RecordHeader) String() string {
 	out := fmt.Sprintf("  Record Header\n")
-	out += fmt.Sprintf("    ttype............:     %02x\n", recordHeader.Type)
-	out += fmt.Sprintf("    protocol Version.: %6x - %s\n", recordHeader.ProtocolVersion, constants.GTlsVersions.GetVersionForByteCode(recordHeader.ProtocolVersion))
-	out += fmt.Sprintf("    footer...........: %6x\n", recordHeader.Length)
+	out += fmt.Sprintf("    Type............:     %02x\n", recordHeader.Type)
+	out += fmt.Sprintf("    ProtocolVersion.: %6x - %s\n", recordHeader.ProtocolVersion, constants.GTlsVersions.GetVersionForByteCode(recordHeader.ProtocolVersion))
+	out += fmt.Sprintf("    Len.............: %6x\n", recordHeader.Length)
 	return out
 }
 
@@ -25,9 +34,17 @@ type HandshakeHeader struct {
 	MessageLength [3]byte
 }
 
+func ParseHandshakeHeader(answer []byte) HandshakeHeader {
+	handshakeHeader := HandshakeHeader{}
+	handshakeHeader.MessageType = answer[0]
+	copy(handshakeHeader.MessageLength[:], answer[1:4])
+
+	return handshakeHeader
+}
+
 func (handshakeHeader HandshakeHeader) String() string {
 	out := fmt.Sprintf("  Handshake Header\n")
-	out += fmt.Sprintf("    message type.....:     %02x\n", handshakeHeader.MessageType)
-	out += fmt.Sprintf("    footer...........: %6x\n", handshakeHeader.MessageLength)
+	out += fmt.Sprintf("    MessageType.....:     %02x\n", handshakeHeader.MessageType)
+	out += fmt.Sprintf("    MessageLen......: %6x\n", handshakeHeader.MessageLength)
 	return out
 }
