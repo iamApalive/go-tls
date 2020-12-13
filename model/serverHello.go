@@ -29,6 +29,10 @@ func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
 	serverHello.HandshakeHeader = ParseHandshakeHeader(answer[offset : offset+4])
 	offset += 4
 
+	if serverHello.HandshakeHeader.MessageType != constants.HandshakeServerHello {
+		return serverHello, answer, helpers.ServerHelloMissingError()
+	}
+
 	copy(serverHello.ServerVersion[:], answer[offset:offset+2])
 	copy(serverHello.ServerRandom[:], answer[offset+2:offset+34])
 	copy(serverHello.SessionIDLength[:], answer[offset+34:offset+35])

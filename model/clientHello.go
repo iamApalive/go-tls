@@ -26,7 +26,7 @@ func MakeClientHello() ClientHello {
 	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.0")
 
 	handshakeHeader := HandshakeHeader{}
-	handshakeHeader.MessageType = 0x1
+	handshakeHeader.MessageType = constants.HandshakeClientHello
 
 	clientHello.ClientVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
 	// TODO Create random array

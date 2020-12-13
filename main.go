@@ -75,18 +75,29 @@ func main() {
 
 	serverHello, answer, err := ParseServerHello(answer)
 	if err != nil {
-		fmt.Println(err)
+		log.Warn(err)
 		os.Exit(1)
 	}
 	fmt.Println(serverHello)
 
-	serverCertificate, answer := ParseServerCertificate(answer)
+	serverCertificate, answer, err := ParseServerCertificate(answer)
+	if err != nil {
+		log.Warn(err)
+		os.Exit(1)
+	}
 	fmt.Println(serverCertificate)
 
 	serverKeyExchange, answer, err := ParseServerKeyExchange(answer)
 	if err != nil {
-		fmt.Println(err)
+		log.Warn(err)
 	} else {
 		fmt.Println(serverKeyExchange)
 	}
+
+	serverHelloDone,answer, err := ParseServerHelloDone(answer)
+	if err != nil {
+		log.Warn(err)
+		os.Exit(1)
+	}
+	fmt.Println(serverHelloDone)
 }

@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
 
@@ -25,7 +26,7 @@ type ServerCertificate struct {
 	Certificates      []Certificate
 }
 
-func ParseServerCertificate(answer []byte) (ServerCertificate, []byte) {
+func ParseServerCertificate(answer []byte) (ServerCertificate, []byte, error) {
 	var offset uint32
 	offset = 0
 	serverCertificate := ServerCertificate{}
@@ -35,11 +36,13 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte) {
 	serverCertificate.HandshakeHeader = ParseHandshakeHeader(answer[offset : offset+4])
 	offset += 4
 
+	if serverCertificate.HandshakeHeader.MessageType != constants.HandshakeServerCertificate {
+		return serverCertificate, answer, helpers.ServerCertificateMissingError()
+	}
+
 	copy(serverCertificate.CertificateLength[:], answer[offset:offset+3])
 	totalCertificateLengthInt := helpers.Convert3ByteArrayToUInt32(serverCertificate.CertificateLength)
 	offset += 3
-
-	//fmt.Println(totalCertificateLengthInt)
 
 	// Parsing list of certificates
 	var readCertificateLength uint32
@@ -50,16 +53,15 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte) {
 		offset += 3
 
 		crtCertificateLengthInt := helpers.Convert3ByteArrayToUInt32(currentCertificate.Length)
-		//fmt.Println(crtCertificateLengthInt)
 
 		currentCertificate.Content = answer[offset:offset+crtCertificateLengthInt]
 		offset += crtCertificateLengthInt
 
 		serverCertificate.Certificates = append(serverCertificate.Certificates, currentCertificate)
-		readCertificateLength += crtCertificateLengthInt + 3 // 3 - size of Length
+		readCertificateLength += crtCertificateLengthInt + 3 	// 3 - size of Length
 	}
 
-	return serverCertificate, answer[offset:]
+	return serverCertificate, answer[offset:], nil
 }
 
 func (serverCertificate ServerCertificate) String() string {

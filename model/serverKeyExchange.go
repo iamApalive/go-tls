@@ -2,7 +2,7 @@ package model
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
+	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
 
@@ -72,14 +72,9 @@ func ParseServerKeyExchange(answer []byte) (ServerKeyExchange, []byte, error) {
 	offset += 4
 
 	// TODO safety check for record header length + handshake type
-	// TODO define constant for 0xc
-	if serverKeyExchange.HandshakeHeader.MessageType != 0xc {
-		fmt.Println(serverKeyExchange.RecordHeader)
-		fmt.Println(serverKeyExchange.HandshakeHeader)
-		log.Warn("No server key exchange")
-		return serverKeyExchange, answer, helpers.ServerKeyExchangeParsingError()
+	if serverKeyExchange.HandshakeHeader.MessageType != constants.HandshakeServerKeyExchange {
+		return serverKeyExchange, answer, helpers.ServerKeyExchangeMissingError()
 	}
-	//fmt.Println(answer[offset])
 
 	serverKeyExchange.Curve = answer[offset]
 	offset += 1
