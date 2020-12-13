@@ -2,27 +2,32 @@ package main
 
 import (
 	"fmt"
-	. "github.com/viorelyo/tlsExperiment/model"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"github.com/viorelyo/tlsExperiment/helpers"
+	. "github.com/viorelyo/tlsExperiment/model"
+	"io"
 	"net"
 	"os"
 )
 
-
-func connectToServer(srvAddr string) net.Conn {
+func connectToServer(srvAddr string) net.TCPConn {
 	log.Info("Connecting to server:", srvAddr)
 
-	conn, err := net.Dial("tcp", srvAddr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", srvAddr)
+	if err != nil {
+		println("ResolveTCPAddr failed")
+		os.Exit(1)
+	}
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		println("DailTCP failed:", err.Error())
 		os.Exit(1)
 	}
-
-	return conn
+	return *conn
 }
 
-func sendToServer(conn net.Conn, payload []byte) {
+func sendToServer(conn net.TCPConn, payload []byte) {
 	log.Info("Sending 'Client Hello' to server")
 
 	_, err := conn.Write(payload)
@@ -31,30 +36,41 @@ func sendToServer(conn net.Conn, payload []byte) {
 		_ = conn.Close()
 		os.Exit(1)
 	}
-
-	conn.(*net.TCPConn).CloseWrite()
 }
 
-func readFromServer(conn net.Conn) []byte {
+func readFromServer(conn net.TCPConn) []byte {
 	log.Info("Reading response")
 
-	var reply []byte
-	reply, err := ioutil.ReadAll(conn)
+	record := make([]byte, 5)
+	// using io.ReadFull to block Read until whole data is sent from server (https://stackoverflow.com/questions/26999615/go-tcp-read-is-non-blocking)
+	_, err := io.ReadFull(&conn, record)
 	if err != nil {
 		println("Read from server failed:", err.Error())
-		conn.Close()
+		_ = conn.Close()
 		os.Exit(1)
 	}
 
-	fmt.Printf("Message received from server: %x\n", reply)
-	return reply
-}
+	recordHeader := ParseRecordHeader(record)
+	recordLen := int(helpers.ConvertByteArrayToUInt16(recordHeader.Length))
 
+	buffer := make([]byte, recordLen)
+	_, err = io.ReadFull(&conn, buffer)
+	if err != nil {
+		println("Read from server failed:", err.Error())
+		_ = conn.Close()
+		os.Exit(1)
+	}
+
+	record = append(record, buffer...)
+
+	log.Debug("Message received from server: %x\n", record)
+	return record
+}
 
 func initLogger() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
-		ForceColors: true,
+		ForceColors:   true,
 	})
 }
 
@@ -70,34 +86,44 @@ func main() {
 	fmt.Println(clientHello)
 
 	sendToServer(conn, clientHello.GetClientHelloPayload())
-	var answer []byte
-	answer = readFromServer(conn)
 
-	serverHello, answer, err := ParseServerHello(answer)
+	var answer []byte
+
+	answer = readFromServer(conn)
+	serverHello, _, err := ParseServerHello(answer)
 	if err != nil {
 		log.Warn(err)
 		os.Exit(1)
 	}
 	fmt.Println(serverHello)
 
-	serverCertificate, answer, err := ParseServerCertificate(answer)
+	answer = readFromServer(conn)
+	serverCertificate, _, err := ParseServerCertificate(answer)
 	if err != nil {
 		log.Warn(err)
 		os.Exit(1)
 	}
 	fmt.Println(serverCertificate)
 
-	serverKeyExchange, answer, err := ParseServerKeyExchange(answer)
+	answer = readFromServer(conn)
+	serverKeyExchange, _, err := ParseServerKeyExchange(answer)
 	if err != nil {
 		log.Warn(err)
 	} else {
 		fmt.Println(serverKeyExchange)
+		answer = readFromServer(conn)
 	}
 
-	serverHelloDone,answer, err := ParseServerHelloDone(answer)
+	serverHelloDone, _, err := ParseServerHelloDone(answer)
 	if err != nil {
 		log.Warn(err)
 		os.Exit(1)
 	}
 	fmt.Println(serverHelloDone)
+
+	// TODO Compute client stuff -> Send To Server
+	//sendToServer(conn, clientHello.GetClientHelloPayload())
+	//answer = readFromServer(conn)
+	//serverHello1, _, err := ParseServerHello(answer)
+	//fmt.Println(serverHello1)
 }

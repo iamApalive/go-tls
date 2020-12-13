@@ -13,9 +13,9 @@ type Certificate struct {
 }
 
 func (certificate Certificate) String() string {
-	out := fmt.Sprintf("Certificate\n")
-	out += fmt.Sprintf("  Certificate Length.: %x\n", certificate.Length)
-	out += fmt.Sprintf("  Certificate........: %x\n", certificate.Content)
+	out := fmt.Sprintf("  Certificate\n")
+	out += fmt.Sprintf("    Certificate Length.: %x\n", certificate.Length)
+	out += fmt.Sprintf("    Certificate........: %x\n", certificate.Content)
 	return out
 }
 
@@ -61,7 +61,7 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte, error) {
 		readCertificateLength += crtCertificateLengthInt + 3 	// 3 - size of Length
 	}
 
-	return serverCertificate, answer[offset:], nil
+	return serverCertificate, answer, nil
 }
 
 func (serverCertificate ServerCertificate) String() string {
