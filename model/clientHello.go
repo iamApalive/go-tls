@@ -130,7 +130,7 @@ func (clientHello *ClientHello) MarshalJSON() ([]byte, error) {
 		ClientRandom             string          `json:"ClientRandom"`
 		SessionID                uint8           `json:"SessionID"`
 		CipherSuiteLength        uint16          `json:"CipherSuiteLength"`
-		CipherSuite              []byte          `json:"CipherSuite"`
+		CipherSuites             []string        `json:"CipherSuites"`
 		CompressionMethodsLength uint8           `json:"CompressionMethodsLength"`
 		CompressionMethods       string          `json:"CompressionMethods"`
 	}{
@@ -140,7 +140,7 @@ func (clientHello *ClientHello) MarshalJSON() ([]byte, error) {
 		ClientRandom:             hex.EncodeToString(clientHello.ClientRandom[:]),
 		SessionID:                clientHello.SessionID[0],
 		CipherSuiteLength:        helpers.ConvertByteArrayToUInt16(clientHello.CipherSuiteLength),
-		CipherSuite:              clientHello.CipherSuite,
+		CipherSuites:             helpers.ConvertByteArrayToCipherSuites(clientHello.CipherSuite),
 		CompressionMethodsLength: clientHello.CompressionMethodsLength[0],
 		CompressionMethods:       hex.EncodeToString(clientHello.CompressionMethods),
 	})
