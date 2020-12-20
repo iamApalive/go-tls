@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
@@ -16,6 +17,30 @@ type ClientHello struct {
 	CipherSuite              []byte
 	CompressionMethodsLength [1]byte
 	CompressionMethods       []byte
+}
+
+func (clientHello *ClientHello) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader             RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader          HandshakeHeader `json:"HandshakeHeader"`
+		ClientVersion            string          `json:"ClientVersion"`
+		ClientRandom             [32]byte        `json:"ClientRandom"`
+		SessionID                uint8           `json:"SessionID"`
+		CipherSuiteLength        uint16          `json:"CipherSuiteLength"`
+		CipherSuite              []byte          `json:"CipherSuite"`
+		CompressionMethodsLength uint8           `json:"CompressionMethodsLength"`
+		CompressionMethods       []byte          `json:"CompressionMethods"`
+	}{
+		RecordHeader:             clientHello.RecordHeader,
+		HandshakeHeader:          clientHello.HandshakeHeader,
+		ClientVersion:            constants.GTlsVersions.GetVersionForByteCode(clientHello.ClientVersion),
+		ClientRandom:             clientHello.ClientRandom,
+		SessionID:                clientHello.SessionID[0],
+		CipherSuiteLength:        helpers.ConvertByteArrayToUInt16(clientHello.CipherSuiteLength),
+		CipherSuite:              clientHello.CipherSuite,
+		CompressionMethodsLength: clientHello.CompressionMethodsLength[0],
+		CompressionMethods:       clientHello.CompressionMethods,
+	})
 }
 
 func MakeClientHello() ClientHello {
@@ -73,7 +98,7 @@ func (clientHello ClientHello) getHandshakeHeaderLength() [3]byte {
 
 func (clientHello ClientHello) getRecordLength() [2]byte {
 	tmp := int(helpers.Convert3ByteArrayToUInt32(clientHello.HandshakeHeader.MessageLength))
-	tmp += 1	// 1 byte corresponds to MessageType
+	tmp += 1 // 1 byte corresponds to MessageType
 	tmp += len(clientHello.HandshakeHeader.MessageLength)
 
 	return helpers.ConvertIntToByteArray(uint16(tmp))

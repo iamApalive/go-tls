@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/helpers"
@@ -83,7 +84,11 @@ func main() {
 	defer conn.Close()
 
 	clientHello := MakeClientHello()
-	fmt.Println(clientHello)
+	//fmt.Println(clientHello)
+
+	file, _ := os.OpenFile("ClientHello.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&clientHello)
 
 	sendToServer(conn, clientHello.GetClientHelloPayload())
 
