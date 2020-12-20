@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/helpers"
 	. "github.com/viorelyo/tlsExperiment/model"
@@ -105,14 +104,16 @@ func main() {
 		log.Warn(err)
 		os.Exit(1)
 	}
-	fmt.Println(serverCertificate)
+	//fmt.Println(serverCertificate)
+	serverCertificate.SaveJSON()
 
 	answer = readFromServer(conn)
 	serverKeyExchange, _, err := ParseServerKeyExchange(answer)
 	if err != nil {
 		log.Warn(err)
 	} else {
-		fmt.Println(serverKeyExchange)
+		//fmt.Println(serverKeyExchange)
+		serverKeyExchange.SaveJSON()
 		answer = readFromServer(conn)
 	}
 
@@ -121,7 +122,8 @@ func main() {
 		log.Warn(err)
 		os.Exit(1)
 	}
-	fmt.Println(serverHelloDone)
+	//fmt.Println(serverHelloDone)
+	serverHelloDone.SaveJSON()
 
 	// TODO Compute client stuff -> Send To Server
 	//sendToServer(conn, clientHello.GetClientHelloPayload())

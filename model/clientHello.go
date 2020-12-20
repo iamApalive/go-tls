@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
@@ -126,21 +127,21 @@ func (clientHello *ClientHello) MarshalJSON() ([]byte, error) {
 		RecordHeader             RecordHeader    `json:"RecordHeader"`
 		HandshakeHeader          HandshakeHeader `json:"HandshakeHeader"`
 		ClientVersion            string          `json:"ClientVersion"`
-		ClientRandom             [32]byte        `json:"ClientRandom"`
+		ClientRandom             string          `json:"ClientRandom"`
 		SessionID                uint8           `json:"SessionID"`
 		CipherSuiteLength        uint16          `json:"CipherSuiteLength"`
 		CipherSuite              []byte          `json:"CipherSuite"`
 		CompressionMethodsLength uint8           `json:"CompressionMethodsLength"`
-		CompressionMethods       []byte          `json:"CompressionMethods"`
+		CompressionMethods       string          `json:"CompressionMethods"`
 	}{
 		RecordHeader:             clientHello.RecordHeader,
 		HandshakeHeader:          clientHello.HandshakeHeader,
 		ClientVersion:            constants.GTlsVersions.GetVersionForByteCode(clientHello.ClientVersion),
-		ClientRandom:             clientHello.ClientRandom,
+		ClientRandom:             hex.EncodeToString(clientHello.ClientRandom[:]),
 		SessionID:                clientHello.SessionID[0],
 		CipherSuiteLength:        helpers.ConvertByteArrayToUInt16(clientHello.CipherSuiteLength),
 		CipherSuite:              clientHello.CipherSuite,
 		CompressionMethodsLength: clientHello.CompressionMethodsLength[0],
-		CompressionMethods:       clientHello.CompressionMethods,
+		CompressionMethods:       hex.EncodeToString(clientHello.CompressionMethods),
 	})
 }

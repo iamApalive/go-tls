@@ -1,9 +1,12 @@
 package model
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
 // TODO maybe deserialize Certificate Info
@@ -17,6 +20,16 @@ func (certificate Certificate) String() string {
 	out += fmt.Sprintf("    Certificate Length.: %x\n", certificate.Length)
 	out += fmt.Sprintf("    Certificate........: %x\n", certificate.Content)
 	return out
+}
+
+func (certificate *Certificate) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Length  uint32 `json:"Length"`
+		Content string `json:"Content"`
+	}{
+		Length:  helpers.Convert3ByteArrayToUInt32(certificate.Length),
+		Content: hex.EncodeToString(certificate.Content),
+	})
 }
 
 type ServerCertificate struct {
@@ -54,14 +67,20 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte, error) {
 
 		crtCertificateLengthInt := helpers.Convert3ByteArrayToUInt32(currentCertificate.Length)
 
-		currentCertificate.Content = answer[offset:offset+crtCertificateLengthInt]
+		currentCertificate.Content = answer[offset : offset+crtCertificateLengthInt]
 		offset += crtCertificateLengthInt
 
 		serverCertificate.Certificates = append(serverCertificate.Certificates, currentCertificate)
-		readCertificateLength += crtCertificateLengthInt + 3 	// 3 - size of Length
+		readCertificateLength += crtCertificateLengthInt + 3 // 3 - size of Length
 	}
 
 	return serverCertificate, answer, nil
+}
+
+func (serverCertificate ServerCertificate) SaveJSON() {
+	file, _ := os.OpenFile("ServerCertificate.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&serverCertificate)
 }
 
 func (serverCertificate ServerCertificate) String() string {
@@ -75,4 +94,18 @@ func (serverCertificate ServerCertificate) String() string {
 		out += fmt.Sprint(c)
 	}
 	return out
+}
+
+func (serverCertificate *ServerCertificate) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader      RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader   HandshakeHeader `json:"HandshakeHeader"`
+		CertificateLength uint32          `json:"CertificatesLength"`
+		Certificates      []Certificate   `json:"Certificates"`
+	}{
+		RecordHeader:      serverCertificate.RecordHeader,
+		HandshakeHeader:   serverCertificate.HandshakeHeader,
+		CertificateLength: helpers.Convert3ByteArrayToUInt32(serverCertificate.CertificateLength),
+		Certificates:      serverCertificate.Certificates,
+	})
 }

@@ -1,21 +1,16 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
 type ServerHelloDone struct {
 	RecordHeader    RecordHeader
 	HandshakeHeader HandshakeHeader
-}
-
-func (serverHelloDone ServerHelloDone) String() string {
-	out := fmt.Sprintf("Server Hello Done\n")
-	out += fmt.Sprint(serverHelloDone.RecordHeader)
-	out += fmt.Sprint(serverHelloDone.HandshakeHeader)
-	return out
 }
 
 func ParseServerHelloDone(answer []byte) (ServerHelloDone, []byte, error) {
@@ -33,4 +28,27 @@ func ParseServerHelloDone(answer []byte) (ServerHelloDone, []byte, error) {
 	}
 
 	return serverHelloDone, answer[offset:], nil
+}
+
+func (serverHelloDone ServerHelloDone) SaveJSON() {
+	file, _ := os.OpenFile("ServerHelloDone.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&serverHelloDone)
+}
+
+func (serverHelloDone ServerHelloDone) String() string {
+	out := fmt.Sprintf("Server Hello Done\n")
+	out += fmt.Sprint(serverHelloDone.RecordHeader)
+	out += fmt.Sprint(serverHelloDone.HandshakeHeader)
+	return out
+}
+
+func (serverHelloDone *ServerHelloDone) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader    RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader HandshakeHeader `json:"HandshakeHeader"`
+	}{
+		RecordHeader:    serverHelloDone.RecordHeader,
+		HandshakeHeader: serverHelloDone.HandshakeHeader,
+	})
 }
