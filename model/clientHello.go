@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
 type ClientHello struct {
@@ -17,30 +18,6 @@ type ClientHello struct {
 	CipherSuite              []byte
 	CompressionMethodsLength [1]byte
 	CompressionMethods       []byte
-}
-
-func (clientHello *ClientHello) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		RecordHeader             RecordHeader    `json:"RecordHeader"`
-		HandshakeHeader          HandshakeHeader `json:"HandshakeHeader"`
-		ClientVersion            string          `json:"ClientVersion"`
-		ClientRandom             [32]byte        `json:"ClientRandom"`
-		SessionID                uint8           `json:"SessionID"`
-		CipherSuiteLength        uint16          `json:"CipherSuiteLength"`
-		CipherSuite              []byte          `json:"CipherSuite"`
-		CompressionMethodsLength uint8           `json:"CompressionMethodsLength"`
-		CompressionMethods       []byte          `json:"CompressionMethods"`
-	}{
-		RecordHeader:             clientHello.RecordHeader,
-		HandshakeHeader:          clientHello.HandshakeHeader,
-		ClientVersion:            constants.GTlsVersions.GetVersionForByteCode(clientHello.ClientVersion),
-		ClientRandom:             clientHello.ClientRandom,
-		SessionID:                clientHello.SessionID[0],
-		CipherSuiteLength:        helpers.ConvertByteArrayToUInt16(clientHello.CipherSuiteLength),
-		CipherSuite:              clientHello.CipherSuite,
-		CompressionMethodsLength: clientHello.CompressionMethodsLength[0],
-		CompressionMethods:       clientHello.CompressionMethods,
-	})
 }
 
 func MakeClientHello() ClientHello {
@@ -123,6 +100,12 @@ func (clientHello ClientHello) GetClientHelloPayload() []byte {
 	return payload
 }
 
+func (clientHello ClientHello) SaveJSON() {
+	file, _ := os.OpenFile("ClientHello.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&clientHello)
+}
+
 func (clientHello ClientHello) String() string {
 	out := fmt.Sprintf("Client Hello\n")
 	out += fmt.Sprint(clientHello.RecordHeader)
@@ -136,4 +119,28 @@ func (clientHello ClientHello) String() string {
 	out += fmt.Sprintf("  CompressionMethods Len..: %6x\n", clientHello.CompressionMethodsLength)
 	out += fmt.Sprintf("  CompressionMethods..: %6x\n", clientHello.CompressionMethods)
 	return out
+}
+
+func (clientHello *ClientHello) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader             RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader          HandshakeHeader `json:"HandshakeHeader"`
+		ClientVersion            string          `json:"ClientVersion"`
+		ClientRandom             [32]byte        `json:"ClientRandom"`
+		SessionID                uint8           `json:"SessionID"`
+		CipherSuiteLength        uint16          `json:"CipherSuiteLength"`
+		CipherSuite              []byte          `json:"CipherSuite"`
+		CompressionMethodsLength uint8           `json:"CompressionMethodsLength"`
+		CompressionMethods       []byte          `json:"CompressionMethods"`
+	}{
+		RecordHeader:             clientHello.RecordHeader,
+		HandshakeHeader:          clientHello.HandshakeHeader,
+		ClientVersion:            constants.GTlsVersions.GetVersionForByteCode(clientHello.ClientVersion),
+		ClientRandom:             clientHello.ClientRandom,
+		SessionID:                clientHello.SessionID[0],
+		CipherSuiteLength:        helpers.ConvertByteArrayToUInt16(clientHello.CipherSuiteLength),
+		CipherSuite:              clientHello.CipherSuite,
+		CompressionMethodsLength: clientHello.CompressionMethodsLength[0],
+		CompressionMethods:       clientHello.CompressionMethods,
+	})
 }

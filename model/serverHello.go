@@ -1,21 +1,23 @@
 package model
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
-
 type ServerHello struct {
-	RecordHeader               RecordHeader
-	HandshakeHeader            HandshakeHeader
-	ServerVersion              [2]byte
-	ServerRandom               [32]byte
-	SessionIDLength            [1]byte
-	SessionID                  []byte
-	CipherSuite                [2]byte
-	CompressionMethod          [1]byte
+	RecordHeader      RecordHeader
+	HandshakeHeader   HandshakeHeader
+	ServerVersion     [2]byte
+	ServerRandom      [32]byte
+	SessionIDLength   [1]byte
+	SessionID         []byte
+	CipherSuite       [2]byte
+	CompressionMethod [1]byte
 }
 
 func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
@@ -49,11 +51,17 @@ func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
 	offset += 38
 
 	serverHelloLength := int(helpers.ConvertByteArrayToUInt16(serverHello.RecordHeader.Length))
-	if serverHelloLength != (offset - 5) {		// 5 is the length of RecordHeader
+	if serverHelloLength != (offset - 5) { // 5 is the length of RecordHeader
 		return serverHello, answer, helpers.ServerHelloParsingError()
 	}
 
 	return serverHello, answer[offset:], nil
+}
+
+func (serverHello ServerHello) SaveJSON() {
+	file, _ := os.OpenFile("ServerHello.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&serverHello)
 }
 
 func (serverHello ServerHello) String() string {
@@ -67,6 +75,26 @@ func (serverHello ServerHello) String() string {
 	out += fmt.Sprintf("  CipherSuite........: %6x - %s\n", serverHello.CipherSuite, constants.GCipherSuites.GetSuiteForByteCode(serverHello.CipherSuite))
 	out += fmt.Sprintf("  CompressionMethod..: %6x\n", serverHello.CompressionMethod)
 	return out
+}
+
+func (serverHello *ServerHello) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader      RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader   HandshakeHeader `json:"HandshakeHeader"`
+		ServerVersion     string          `json:"SeverVersion"`
+		ServerRandom      string          `json:"ServerRandom"`
+		SessionID         string          `json:"SessionID"`
+		CipherSuite       string          `json:"CipherSuite"`
+		CompressionMethod uint8           `json:"CompressionMethod"`
+	}{
+		RecordHeader:      serverHello.RecordHeader,
+		HandshakeHeader:   serverHello.HandshakeHeader,
+		ServerVersion:     constants.GTlsVersions.GetVersionForByteCode(serverHello.ServerVersion),
+		ServerRandom:      hex.EncodeToString(serverHello.ServerRandom[:]),
+		SessionID:         hex.EncodeToString(serverHello.SessionID),
+		CipherSuite:       constants.GCipherSuites.GetSuiteForByteCode(serverHello.CipherSuite),
+		CompressionMethod: serverHello.CompressionMethod[0],
+	})
 }
 
 // TODO make parsing functions methods of ServerHello struct
