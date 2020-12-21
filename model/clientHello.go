@@ -76,7 +76,7 @@ func (clientHello ClientHello) getHandshakeHeaderLength() [3]byte {
 
 func (clientHello ClientHello) getRecordLength() [2]byte {
 	tmp := int(helpers.Convert3ByteArrayToUInt32(clientHello.HandshakeHeader.MessageLength))
-	tmp += 1 // 1 byte corresponds to MessageType
+	tmp += 1 // size of MessageType
 	tmp += len(clientHello.HandshakeHeader.MessageLength)
 
 	return helpers.ConvertIntToByteArray(uint16(tmp))

@@ -126,9 +126,15 @@ func main() {
 	fmt.Println(serverHelloDone)
 	//serverHelloDone.SaveJSON()
 
+	clientKeyExchange := MakeClientKeyExchange()
+	sendToServer(conn, clientKeyExchange.GetClientKeyExchangePayload())
+
+	clientChangeCipherSpec := MakeClientChangeCipherSpec()
+	sendToServer(conn, clientChangeCipherSpec.GetClientChangeCipherSpecPayload())
+	answer = readFromServer(conn)
+	log.Warn(answer)
+
 	// TODO Compute client stuff -> Send To Server
-	//sendToServer(conn, clientHello.GetClientHelloPayload())
-	//answer = readFromServer(conn)
 	//serverHello1, _, err := ParseServerHello(answer)
 	//fmt.Println(serverHello1)
 }

@@ -108,7 +108,7 @@ func (serverKeyExchange ServerKeyExchange) String() string {
 	out += fmt.Sprint(serverKeyExchange.RecordHeader)
 	out += fmt.Sprint(serverKeyExchange.HandshakeHeader)
 	out += fmt.Sprintf("  Curve Type.........: %6x\n", serverKeyExchange.Curve)
-	out += fmt.Sprintf("  Curve..............: %6x\n", serverKeyExchange.CurveID)
+	out += fmt.Sprintf("  Curve..............: %6x - %s\n", serverKeyExchange.CurveID, constants.GCurves.GetCurveForByteCode(serverKeyExchange.CurveID))
 	out += fmt.Sprintf("  Public Key length..: %6x\n", serverKeyExchange.PublicKeyLength)
 	out += fmt.Sprintf("  Public Key.........: %6x\n", serverKeyExchange.PublicKey)
 	out += fmt.Sprint(serverKeyExchange.Signature)
