@@ -1,10 +1,11 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
+	"github.com/viorelyo/tlsExperiment/helpers"
 )
-
 
 type RecordHeader struct {
 	Type            byte
@@ -29,6 +30,20 @@ func (recordHeader RecordHeader) String() string {
 	return out
 }
 
+func (recordHeader *RecordHeader) MarshalJSON() ([]byte, error) {
+	tmp := constants.GTlsVersions.GetVersionForByteCode(recordHeader.ProtocolVersion)
+
+	return json.Marshal(&struct {
+		Type            uint8  `json:"Type"`
+		ProtocolVersion string `json:"ProtocolVersion"`
+		Length          uint16 `json:"Length"`
+	}{
+		Type:            recordHeader.Type,
+		ProtocolVersion: tmp,
+		Length:          helpers.ConvertByteArrayToUInt16(recordHeader.Length),
+	})
+}
+
 type HandshakeHeader struct {
 	MessageType   byte
 	MessageLength [3]byte
@@ -47,4 +62,14 @@ func (handshakeHeader HandshakeHeader) String() string {
 	out += fmt.Sprintf("    MessageType.....:     %02x\n", handshakeHeader.MessageType)
 	out += fmt.Sprintf("    MessageLen......: %6x\n", handshakeHeader.MessageLength)
 	return out
+}
+
+func (handshakeHeader *HandshakeHeader) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		MessageType   uint8  `json:"Type"`
+		MessageLength uint32 `json:"Length"`
+	}{
+		MessageType:   handshakeHeader.MessageType,
+		MessageLength: helpers.Convert3ByteArrayToUInt32(handshakeHeader.MessageLength),
+	})
 }

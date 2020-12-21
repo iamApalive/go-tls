@@ -1,9 +1,12 @@
 package model
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
 type Signature struct {
@@ -25,7 +28,7 @@ func ParseSignature(answer []byte) (Signature, []byte) {
 	offset += 2
 
 	tmpLength := uint32(helpers.ConvertByteArrayToUInt16(signature.Length))
-	signature.Content = answer[offset:offset+tmpLength]
+	signature.Content = answer[offset : offset+tmpLength]
 	offset += tmpLength
 
 	return signature, answer[offset:]
@@ -39,6 +42,18 @@ func (signature Signature) String() string {
 	return out
 }
 
+func (signature *Signature) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Algorithm string `json:"SignatureAlgorithm"`
+		Length    uint16 `json:"Length"`
+		Content   string `json:"SignatureContent"`
+	}{
+		Algorithm: constants.GSignatureAlgorithms.GetAlgorithmForByteCode(signature.Algorithm),
+		Length:    helpers.ConvertByteArrayToUInt16(signature.Length),
+		Content:   hex.EncodeToString(signature.Content),
+	})
+}
+
 type ServerKeyExchange struct {
 	RecordHeader    RecordHeader
 	HandshakeHeader HandshakeHeader
@@ -47,18 +62,6 @@ type ServerKeyExchange struct {
 	PublicKeyLength byte
 	PublicKey       []byte
 	Signature       Signature
-}
-
-func (serverKeyExchange ServerKeyExchange) String() string {
-	out := fmt.Sprintf("Server Key Exchange\n")
-	out += fmt.Sprint(serverKeyExchange.RecordHeader)
-	out += fmt.Sprint(serverKeyExchange.HandshakeHeader)
-	out += fmt.Sprintf("  Curve Type.........: %6x\n", serverKeyExchange.Curve)
-	out += fmt.Sprintf("  Curve..............: %6x\n", serverKeyExchange.CurveID)
-	out += fmt.Sprintf("  Public Key length..: %6x\n", serverKeyExchange.PublicKeyLength)
-	out += fmt.Sprintf("  Public Key.........: %6x\n", serverKeyExchange.PublicKey)
-	out += fmt.Sprint(serverKeyExchange.Signature)
-	return out
 }
 
 func ParseServerKeyExchange(answer []byte) (ServerKeyExchange, []byte, error) {
@@ -86,10 +89,48 @@ func ParseServerKeyExchange(answer []byte) (ServerKeyExchange, []byte, error) {
 	offset += 1
 
 	tmpLength := uint32(serverKeyExchange.PublicKeyLength)
-	serverKeyExchange.PublicKey = answer[offset:offset+tmpLength]
+	serverKeyExchange.PublicKey = answer[offset : offset+tmpLength]
 	offset += tmpLength
 
 	serverKeyExchange.Signature, answer = ParseSignature(answer[offset:])
 
 	return serverKeyExchange, answer, nil
+}
+
+func (serverKeyExchange ServerKeyExchange) SaveJSON() {
+	file, _ := os.OpenFile("ServerKeyExchange.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&serverKeyExchange)
+}
+
+func (serverKeyExchange ServerKeyExchange) String() string {
+	out := fmt.Sprintf("Server Key Exchange\n")
+	out += fmt.Sprint(serverKeyExchange.RecordHeader)
+	out += fmt.Sprint(serverKeyExchange.HandshakeHeader)
+	out += fmt.Sprintf("  Curve Type.........: %6x\n", serverKeyExchange.Curve)
+	out += fmt.Sprintf("  Curve..............: %6x\n", serverKeyExchange.CurveID)
+	out += fmt.Sprintf("  Public Key length..: %6x\n", serverKeyExchange.PublicKeyLength)
+	out += fmt.Sprintf("  Public Key.........: %6x\n", serverKeyExchange.PublicKey)
+	out += fmt.Sprint(serverKeyExchange.Signature)
+	return out
+}
+
+func (serverKeyExchange *ServerKeyExchange) MarshalJSON() ([]byte, error) {
+	curveValue := constants.GCurves.GetCurveForByteCode(serverKeyExchange.CurveID)
+	if curveValue == "" {
+		curveValue = hex.EncodeToString(serverKeyExchange.CurveID[:])
+	}
+	return json.Marshal(&struct {
+		RecordHeader    RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader HandshakeHeader `json:"HandshakeHeader"`
+		Curve           string          `json:"Curve"`
+		PublicKey       string          `json:"PublicKey"`
+		Signature       Signature       `json:"Signature"`
+	}{
+		RecordHeader:    serverKeyExchange.RecordHeader,
+		HandshakeHeader: serverKeyExchange.HandshakeHeader,
+		Curve:           curveValue,
+		PublicKey:       hex.EncodeToString(serverKeyExchange.PublicKey),
+		Signature:       serverKeyExchange.Signature,
+	})
 }
