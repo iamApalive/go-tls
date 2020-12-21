@@ -1,6 +1,8 @@
 package model
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,14 +13,16 @@ import (
 
 // TODO maybe deserialize Certificate Info
 type Certificate struct {
-	Length  [3]byte
-	Content []byte
+	Length      [3]byte
+	Content     []byte
+	Certificate *x509.Certificate
 }
 
 func (certificate Certificate) String() string {
 	out := fmt.Sprintf("  Certificate\n")
 	out += fmt.Sprintf("    Certificate Length.: %x\n", certificate.Length)
 	out += fmt.Sprintf("    Certificate........: %x\n", certificate.Content)
+	out += fmt.Sprintf("    Certificate Public Key........: %x\n", certificate.Certificate.PublicKey.(*rsa.PublicKey).N)
 	return out
 }
 
@@ -70,11 +74,22 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte, error) {
 		currentCertificate.Content = answer[offset : offset+crtCertificateLengthInt]
 		offset += crtCertificateLengthInt
 
+		parsedCertificate, _ := x509.ParseCertificate(currentCertificate.Content)
+		currentCertificate.Certificate = parsedCertificate
+
 		serverCertificate.Certificates = append(serverCertificate.Certificates, currentCertificate)
 		readCertificateLength += crtCertificateLengthInt + 3 // 3 - size of Length
 	}
 
 	return serverCertificate, answer, nil
+}
+
+// The server sends a sequence (chain) of certificates.
+// According to the documentation, the sender's certificate MUST come first in the list.
+// Each following certificate MUST directly certify the one preceding it.
+// https://tools.ietf.org/html/rfc5246#section-7.4.2
+func (serverCertificate ServerCertificate) GetChosenCertificate() *x509.Certificate {
+	return serverCertificate.Certificates[0].Certificate
 }
 
 func (serverCertificate ServerCertificate) SaveJSON() {
