@@ -111,12 +111,14 @@ func (clientHello ClientHello) String() string {
 	out := fmt.Sprintf("Client Hello\n")
 	out += fmt.Sprint(clientHello.RecordHeader)
 	out += fmt.Sprint(clientHello.HandshakeHeader)
-	out += fmt.Sprintf("  Client Version.....: %6x\n", clientHello.ClientVersion)
+	out += fmt.Sprintf("  Client Version.....: %6x - %s\n", clientHello.ClientVersion, constants.GTlsVersions.GetVersionForByteCode(clientHello.ClientVersion))
 	out += fmt.Sprintf("  Client Random......: %6x\n", clientHello.ClientRandom)
 	out += fmt.Sprintf("  Session ID.........: %6x\n", clientHello.SessionID)
 	out += fmt.Sprintf("  CipherSuite Len....: %6x\n", clientHello.CipherSuiteLength)
-	// TODO Display the list of Ciphers
-	//out += fmt.Sprintf("  CipherSuite........: %6x - %s\n", clientHello.CipherSuite, constants.GCipherSuites.GetSuiteForByteCode(clientHello.CipherSuite))
+	out += fmt.Sprintf("  CipherSuites.......:\n")
+	for _, c := range helpers.ConvertByteArrayToCipherSuites(clientHello.CipherSuite) {
+		out += fmt.Sprintf("       %s\n", c)
+	}
 	out += fmt.Sprintf("  CompressionMethods Len..: %6x\n", clientHello.CompressionMethodsLength)
 	out += fmt.Sprintf("  CompressionMethods..: %6x\n", clientHello.CompressionMethods)
 	return out

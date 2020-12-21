@@ -68,7 +68,7 @@ func (serverHello ServerHello) String() string {
 	out := fmt.Sprintf("Server Hello\n")
 	out += fmt.Sprint(serverHello.RecordHeader)
 	out += fmt.Sprint(serverHello.HandshakeHeader)
-	out += fmt.Sprintf("  Server Version.....: %6x\n", serverHello.ServerVersion)
+	out += fmt.Sprintf("  Server Version.....: %6x - %s\n", serverHello.ServerVersion, constants.GTlsVersions.GetVersionForByteCode(serverHello.ServerVersion))
 	out += fmt.Sprintf("  Server Random......: %6x\n", serverHello.ServerRandom)
 	out += fmt.Sprintf("  Session ID length..: %6x\n", serverHello.SessionIDLength)
 	out += fmt.Sprintf("  Session ID.........: %6x\n", serverHello.SessionID)
