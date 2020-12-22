@@ -12,5 +12,7 @@ func HashByteArray(algorithmName string, byteArray []byte) []byte {
 	}
 
 	hashFunc := hashFactory[algorithmName]()
-	return hashFunc.Sum(byteArray)
+	// TODO - think about some generalization (maybe struct containing output length)
+	hashedOutput := hashFunc.Sum(byteArray)
+	return hashedOutput[len(hashedOutput)-sha512.Size384:]
 }

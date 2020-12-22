@@ -139,11 +139,12 @@ func main() {
 
 	clientKeyExchange := MakeClientKeyExchange()
 	clientKeyExchangePayload := clientKeyExchange.GetClientKeyExchangePayload()
-	sendToServer(conn, clientKeyExchangePayload)
+	messages = append(messages, helpers.IgnoreRecordHeader(clientKeyExchangePayload)...)
+	//sendToServer(conn, clientKeyExchangePayload)
 
 	clientChangeCipherSpec := MakeClientChangeCipherSpec()
 	//clientChangeCipherSpec is not a handshake message, so it is not included in the hash input
-	sendToServer(conn, clientChangeCipherSpec.GetClientChangeCipherSpecPayload())
+	//sendToServer(conn, clientChangeCipherSpec.GetClientChangeCipherSpecPayload())
 
 	curve := elliptic.P256()
 	publicKeyX, publicKeyY := elliptic.Unmarshal(curve, serverKeyExchange.PublicKey)
@@ -155,25 +156,38 @@ func main() {
 	sharedKey := make([]byte, (curve.Params().BitSize+7)/8)
 	preMasterSecret := xShared.FillBytes(sharedKey)
 
-	log.Info("len is: ", len(preMasterSecret))
-
 	masterSecret := cryptoHelpers.MasterFromPreMasterSecret(preMasterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:])
 	//clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 384, 4)
-	_, _, _, _, clientIV, _ := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 384, 4)
+	_, _, clientKey, _, clientIV, _ := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 32, 4)
+
 
 	data := cryptoHelpers.VerifyData("SHA384", messages)
 	verifyData := cryptoHelpers.MakeVerifyData(masterSecret, data)
 
-	fmt.Println("master secret: ", masterSecret)
-	fmt.Println("verifyData: ", verifyData)
-
-	clientHandshakeFinished := MakeClientHandshakeFinished(clientIV, verifyData)
-	sendToServer(conn, clientHandshakeFinished.GetClientHandshakeFinishedPayload())
-	answer = readFromServer(conn)
-	log.Warn(answer)
+	//fmt.Println("master secret: ", masterSecret)
+	//fmt.Println("verifyData: ", verifyData)
 
 	// TODO Compute client stuff -> Send To Server
-	//clientHandshakeFinished := MakeClientHandshakeFinished(messages)
+	clientHandshakeFinished := MakeClientHandshakeFinished(clientIV, verifyData)
+
+	var plainContent []byte
+	plainContent = append(plainContent, clientHandshakeFinished.HandshakeHeader.MessageType)
+	plainContent = append(plainContent, clientHandshakeFinished.HandshakeHeader.MessageLength[:]...)
+	plainContent = append(plainContent, clientHandshakeFinished.VerifyData...)
+	log.Info("PlainContent:", plainContent)
+
+	encryptedContent := cryptoHelpers.Encrypt(clientKey, clientIV, plainContent)
+	log.Error(encryptedContent)
+	clientHandshakeFinished.RecordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(encryptedContent)))
+
+
+	finalPayload := append(clientKeyExchangePayload, clientChangeCipherSpec.GetClientChangeCipherSpecPayload()...)
+	finalPayload = append(finalPayload,  clientHandshakeFinished.GetClientHandshakeFinishedPayload(encryptedContent)...)
+
+
+	sendToServer(conn, finalPayload)
+	answer = readFromServer(conn)
+	log.Warn(answer)
 
 	//serverHello1, _, err := ParseServerHello(answer)
 	//fmt.Println(serverHello1)
