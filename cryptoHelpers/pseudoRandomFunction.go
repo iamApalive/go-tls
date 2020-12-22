@@ -94,3 +94,10 @@ func KeysFromMasterSecret(masterSecret, clientRandom, serverRandom []byte, macLe
 	serverIV = keyMaterial[:ivLen]
 	return
 }
+
+// Returns the contents of the verify_data member of a client's Finished message.
+func MakeVerifyData(masterSecret []byte, data []byte) []byte {
+	out := make([]byte, finishedVerifyLength)
+	prfForVersion()(out, masterSecret, clientFinishedLabel, data)
+	return out
+}

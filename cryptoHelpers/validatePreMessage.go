@@ -1,6 +1,5 @@
 package cryptoHelpers
 
-//func ValidatePreMessage(algorithmName string, preMessage []byte) []byte {
-//	data := HashByteArray(algorithmName, preMessage)
-//
-//}
+func VerifyData(algorithmName string, preMessage []byte) []byte {
+	return HashByteArray(algorithmName, preMessage)
+}

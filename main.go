@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/elliptic"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
@@ -143,15 +144,33 @@ func main() {
 	clientChangeCipherSpec := MakeClientChangeCipherSpec()
 	//clientChangeCipherSpec is not a handshake message, so it is not included in the hash input
 	sendToServer(conn, clientChangeCipherSpec.GetClientChangeCipherSpecPayload())
-	//answer = readFromServer(conn)
+
+	curve := elliptic.P256()
+	publicKeyX, publicKeyY := elliptic.Unmarshal(curve, serverKeyExchange.PublicKey)
+	if publicKeyX == nil {
+		return
+	}
+	xShared, _ := curve.ScalarMult(publicKeyX, publicKeyY, clientKeyExchange.PrivateKey)
+	//TODO why this length?
+	sharedKey := make([]byte, (curve.Params().BitSize+7)/8)
+	preMasterSecret := xShared.FillBytes(sharedKey)
+
+	log.Info("len is: ", len(preMasterSecret))
+
+	masterSecret := cryptoHelpers.MasterFromPreMasterSecret(preMasterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:])
+	//clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 384, 4)
+	_, _, _, _, clientIV, _ := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 384, 4)
+
+	data := cryptoHelpers.VerifyData("SHA384", messages)
+	verifyData := cryptoHelpers.MakeVerifyData(masterSecret, data)
+
+	fmt.Println("master secret: ", masterSecret)
+	fmt.Println("verifyData: ", verifyData)
+
+	clientHandshakeFinished := MakeClientHandshakeFinished(clientIV, verifyData)
+	sendToServer(conn, clientHandshakeFinished.GetClientHandshakeFinishedPayload())
+	answer = readFromServer(conn)
 	log.Warn(answer)
-
-	clientPublicKey := clientKeyExchange.PrivateKey.PublicKey
-	preMasterKey, _ := clientPublicKey.Curve.ScalarMult(clientKeyExchange.PrivateKey.X, clientKeyExchange.PrivateKey.Y, serverKeyExchange.PublicKey)
-	log.Info("len is: ", len(preMasterKey.Bytes()))
-
-	masterKey := cryptoHelpers.MasterFromPreMasterSecret(preMasterKey.Bytes(), clientHello.ClientRandom[:], serverHello.ServerRandom[:])
-	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV := cryptoHelpers.KeysFromMasterSecret(masterKey, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 384, 4)
 
 	// TODO Compute client stuff -> Send To Server
 	//clientHandshakeFinished := MakeClientHandshakeFinished(messages)

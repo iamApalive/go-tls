@@ -1,10 +1,8 @@
 package model
 
 import (
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
@@ -14,19 +12,21 @@ type ClientKeyExchange struct {
 	HandshakeHeader HandshakeHeader
 	PublicKeyLength byte
 	PublicKey       []byte
-	PrivateKey      *ecdsa.PrivateKey
+	PrivateKey      []byte
 }
 
 // TODO de-hardcode P256
 func MakeClientKeyExchange() ClientKeyExchange {
-	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	publicKey := privateKey.PublicKey
-	publicKeyArr := elliptic.Marshal(publicKey, publicKey.X, publicKey.Y)
-	log.Info(publicKeyArr)
+	curve := elliptic.P256()
+	//TODO do not ignore error
+	privateKey, privateKeyX, privateKeyY, _ := elliptic.GenerateKey(curve, rand.Reader)
+
+	publicKey := elliptic.Marshal(curve, privateKeyX, privateKeyY)
+	//log.Info(publicKeyArr)
 
 	clientKeyExchange := ClientKeyExchange{}
-	clientKeyExchange.PublicKeyLength = byte(len(publicKeyArr))
-	clientKeyExchange.PublicKey = publicKeyArr
+	clientKeyExchange.PublicKeyLength = byte(len(publicKey))
+	clientKeyExchange.PublicKey = publicKey
 
 	clientKeyExchange.PrivateKey = privateKey
 

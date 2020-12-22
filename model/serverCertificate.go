@@ -89,6 +89,7 @@ func ParseServerCertificate(answer []byte) (ServerCertificate, []byte, error) {
 // Each following certificate MUST directly certify the one preceding it.
 // https://tools.ietf.org/html/rfc5246#section-7.4.2
 func (serverCertificate ServerCertificate) GetChosenCertificate() *x509.Certificate {
+	//TODO add check for len > 0
 	return serverCertificate.Certificates[0].Certificate
 }
 
