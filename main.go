@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
 	"github.com/viorelyo/tlsExperiment/helpers"
 	. "github.com/viorelyo/tlsExperiment/model"
 	"io"
@@ -81,12 +82,16 @@ func main() {
 	srvAddr := "ubbcluj.ro:443"
 	conn := connectToServer(srvAddr)
 	defer conn.Close()
+	
+	var messages []byte
 
 	clientHello := MakeClientHello()
+	clientHelloPayload := clientHello.GetClientHelloPayload()
+	messages = append(messages, helpers.IgnoreRecordHeader(clientHelloPayload)...)
 	fmt.Println(clientHello)
 	//clientHello.SaveJSON()
 
-	sendToServer(conn, clientHello.GetClientHelloPayload())
+	sendToServer(conn, clientHelloPayload)
 
 	var answer []byte
 
@@ -96,6 +101,7 @@ func main() {
 		log.Warn(err)
 		os.Exit(1)
 	}
+	messages = append(messages, helpers.IgnoreRecordHeader(answer)...)
 	fmt.Println(serverHello)
 	//serverHello.SaveJSON()
 
@@ -105,6 +111,7 @@ func main() {
 		log.Warn(err)
 		os.Exit(1)
 	}
+	messages = append(messages, helpers.IgnoreRecordHeader(answer)...)
 	fmt.Println(serverCertificate)
 	//serverCertificate.SaveJSON()
 
@@ -113,28 +120,42 @@ func main() {
 	if err != nil {
 		log.Warn(err)
 	} else {
+		messages = append(messages, helpers.IgnoreRecordHeader(answer)...)
 		fmt.Println(serverKeyExchange)
 		//serverKeyExchange.SaveJSON()
 		answer = readFromServer(conn)
 	}
+	// TODO verify signature: the computed signature for SHA256(client_hello_random + server_hello_random + curve_info + public_key)
 
 	serverHelloDone, _, err := ParseServerHelloDone(answer)
 	if err != nil {
 		log.Warn(err)
 		os.Exit(1)
 	}
+	messages = append(messages, helpers.IgnoreRecordHeader(answer)...)
 	fmt.Println(serverHelloDone)
 	//serverHelloDone.SaveJSON()
 
 	clientKeyExchange := MakeClientKeyExchange()
-	sendToServer(conn, clientKeyExchange.GetClientKeyExchangePayload())
+	clientKeyExchangePayload := clientKeyExchange.GetClientKeyExchangePayload()
+	sendToServer(conn, clientKeyExchangePayload)
 
 	clientChangeCipherSpec := MakeClientChangeCipherSpec()
+	//clientChangeCipherSpec is not a handshake message, so it is not included in the hash input
 	sendToServer(conn, clientChangeCipherSpec.GetClientChangeCipherSpecPayload())
-	answer = readFromServer(conn)
+	//answer = readFromServer(conn)
 	log.Warn(answer)
 
+	clientPublicKey := clientKeyExchange.PrivateKey.PublicKey
+	preMasterKey, _ := clientPublicKey.Curve.ScalarMult(clientKeyExchange.PrivateKey.X, clientKeyExchange.PrivateKey.Y, serverKeyExchange.PublicKey)
+	log.Info("len is: ", len(preMasterKey.Bytes()))
+
+	masterKey := cryptoHelpers.MasterFromPreMasterSecret(preMasterKey.Bytes(), clientHello.ClientRandom[:], serverHello.ServerRandom[:])
+	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV := cryptoHelpers.KeysFromMasterSecret(masterKey, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 384, 4)
+
 	// TODO Compute client stuff -> Send To Server
+	//clientHandshakeFinished := MakeClientHandshakeFinished(messages)
+
 	//serverHello1, _, err := ParseServerHello(answer)
 	//fmt.Println(serverHello1)
 }

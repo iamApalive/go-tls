@@ -37,9 +37,10 @@ func MakeClientHello() ClientHello {
 
 	clientHello.SessionID = [1]byte{0x00}
 
-	suitesByteCode := constants.GCipherSuites.GetSuiteByteCodes(constants.GCipherSuites.GetAllSuites())
+	//suitesByteCode := constants.GCipherSuites.GetSuiteByteCodes(constants.GCipherSuites.GetAllSuites())
+	suitesByteCode := constants.GCipherSuites.GetByteCodeForSuite("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384")
 
-	clientHello.CipherSuite = suitesByteCode
+	clientHello.CipherSuite = suitesByteCode[:]
 	clientHello.CipherSuiteLength = helpers.ConvertIntToByteArray(uint16(len(suitesByteCode)))
 
 	clientHello.CompressionMethods = []byte{0x00}

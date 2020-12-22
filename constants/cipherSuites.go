@@ -4,6 +4,7 @@ type CipherSuitesConverter struct {
 	CipherSuites map[string][2]byte
 }
 
+// TODO create struct to include algorithm
 func MakeCipherSuites() CipherSuitesConverter {
 	cipherSuitesConverter := CipherSuitesConverter{}
 	cipherSuitesConverter.CipherSuites = map[string][2]byte{

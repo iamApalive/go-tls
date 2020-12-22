@@ -14,8 +14,10 @@ type ClientKeyExchange struct {
 	HandshakeHeader HandshakeHeader
 	PublicKeyLength byte
 	PublicKey       []byte
+	PrivateKey      *ecdsa.PrivateKey
 }
 
+// TODO de-hardcode P256
 func MakeClientKeyExchange() ClientKeyExchange {
 	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	publicKey := privateKey.PublicKey
@@ -25,6 +27,8 @@ func MakeClientKeyExchange() ClientKeyExchange {
 	clientKeyExchange := ClientKeyExchange{}
 	clientKeyExchange.PublicKeyLength = byte(len(publicKeyArr))
 	clientKeyExchange.PublicKey = publicKeyArr
+
+	clientKeyExchange.PrivateKey = privateKey
 
 	recordHeader := RecordHeader{}
 	recordHeader.Type = 0x16
@@ -45,7 +49,7 @@ func (clientKeyExchange ClientKeyExchange) getHandshakeHeaderLength() [3]byte {
 	var length [3]byte
 
 	k := uint16(clientKeyExchange.PublicKeyLength)
-	k += 1 	// size of PublicKeyLength
+	k += 1 // size of PublicKeyLength
 
 	tmp := helpers.ConvertIntToByteArray(k)
 	length[0] = 0x00
@@ -57,7 +61,7 @@ func (clientKeyExchange ClientKeyExchange) getHandshakeHeaderLength() [3]byte {
 
 func (clientKeyExchange ClientKeyExchange) getRecordLength() [2]byte {
 	tmp := int(helpers.Convert3ByteArrayToUInt32(clientKeyExchange.HandshakeHeader.MessageLength))
-	tmp += 1 	// size of MessageType
+	tmp += 1 // size of MessageType
 	tmp += len(clientKeyExchange.HandshakeHeader.MessageLength)
 
 	return helpers.ConvertIntToByteArray(uint16(tmp))
