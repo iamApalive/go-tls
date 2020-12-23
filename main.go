@@ -174,25 +174,28 @@ func main() {
 	plainContent = append(plainContent, clientHandshakeFinished.HandshakeHeader.MessageType)
 	plainContent = append(plainContent, clientHandshakeFinished.HandshakeHeader.MessageLength[:]...)
 	plainContent = append(plainContent, clientHandshakeFinished.VerifyData...)
-	log.Info("PlainContent:", plainContent)
 
 	encryptedContent := cryptoHelpers.Encrypt(clientKey, clientIV, plainContent)
-	log.Error(encryptedContent)
 	clientHandshakeFinished.RecordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(encryptedContent)))
-
 
 	finalPayload := append(clientKeyExchangePayload, clientChangeCipherSpec.GetClientChangeCipherSpecPayload()...)
 	finalPayload = append(finalPayload,  clientHandshakeFinished.GetClientHandshakeFinishedPayload(encryptedContent)...)
 
-
 	sendToServer(conn, finalPayload)
 
+	// TODO - Parse responses
 	answer = readFromServer(conn)
 	log.Warn(answer)
 
 	answer = readFromServer(conn)
 	log.Warn(answer)
 
-	//serverHello1, _, err := ParseServerHello(answer)
-	//fmt.Println(serverHello1)
+	// TODO - Parameterize request data
+	requestData := "GET / HTTP/1.1\\r\\nHost: ubbcluj.ro\\r\\n\\r\\n"
+
+	clientApplicationData := MakeClientApplicationData(clientKey, clientIV, []byte(requestData))
+	sendToServer(conn, clientApplicationData.GetPayload())
+
+	answer = readFromServer(conn)
+	log.Warn(answer)
 }
