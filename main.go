@@ -186,6 +186,10 @@ func main() {
 
 
 	sendToServer(conn, finalPayload)
+
+	answer = readFromServer(conn)
+	log.Warn(answer)
+
 	answer = readFromServer(conn)
 	log.Warn(answer)
 
