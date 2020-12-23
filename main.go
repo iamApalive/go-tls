@@ -30,7 +30,7 @@ func connectToServer(srvAddr string) net.TCPConn {
 }
 
 func sendToServer(conn net.TCPConn, payload []byte) {
-	log.Info("Sending 'Client Hello' to server")
+	log.Info("Sending to server")
 
 	_, err := conn.Write(payload)
 	if err != nil {
@@ -175,7 +175,8 @@ func main() {
 	plainContent = append(plainContent, clientHandshakeFinished.HandshakeHeader.MessageLength[:]...)
 	plainContent = append(plainContent, clientHandshakeFinished.VerifyData...)
 
-	encryptedContent := cryptoHelpers.Encrypt(clientKey, clientIV, plainContent)
+	// TODO extract sequence number as global parameter somehow
+	encryptedContent := cryptoHelpers.Encrypt(clientKey, clientIV, plainContent, 0, 0x16)
 	clientHandshakeFinished.RecordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(encryptedContent)))
 
 	finalPayload := append(clientKeyExchangePayload, clientChangeCipherSpec.GetClientChangeCipherSpecPayload()...)
@@ -191,7 +192,7 @@ func main() {
 	log.Warn(answer)
 
 	// TODO - Parameterize request data
-	requestData := "GET / HTTP/1.1\\r\\nHost: ubbcluj.ro\\r\\n\\r\\n"
+	requestData := "GET / HTTP/1.1\r\nHost: ubbcluj.ro\r\n\r\n"
 
 	clientApplicationData := MakeClientApplicationData(clientKey, clientIV, []byte(requestData))
 	sendToServer(conn, clientApplicationData.GetPayload())

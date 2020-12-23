@@ -16,12 +16,14 @@ func MakeClientApplicationData(key, iv, data []byte) ClientApplicationData {
 	clientApplicationData := ClientApplicationData{}
 	clientApplicationData.Data = data
 
-	clientApplicationData.Payload = cryptoHelpers.Encrypt(key, iv, data)
+	clientApplicationData.Payload = cryptoHelpers.Encrypt(key, iv, data, 1, 0x17)
 
 	recordHeader := RecordHeader{}
 	recordHeader.Type = 0x17
-	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.0")
+	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
 	recordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(clientApplicationData.Payload)))
+
+	clientApplicationData.RecordHeader = recordHeader
 
 	return clientApplicationData
 }

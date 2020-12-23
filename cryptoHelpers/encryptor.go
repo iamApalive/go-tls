@@ -9,7 +9,8 @@ import (
 	"io"
 )
 
-func Encrypt(key []byte, iv []byte, plaintext []byte) []byte {
+// TODO extract seqNumber & record type from parameters
+func Encrypt(key []byte, iv []byte, plaintext []byte, seqNumber byte, recordType byte) []byte {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err.Error())
@@ -24,8 +25,9 @@ func Encrypt(key []byte, iv []byte, plaintext []byte) []byte {
 	nonceIV := append(iv, nonce...)
 
 	version := constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
-	additionalData := make([]byte, 8)
-	additionalData = append(additionalData, 0x16)
+	additionalData := make([]byte, 7)
+	additionalData = append(additionalData, seqNumber)
+	additionalData = append(additionalData, recordType)
 	additionalData = append(additionalData, version[:]...)
 
 	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(plaintext)))
