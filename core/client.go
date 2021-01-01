@@ -24,7 +24,7 @@ type TLSClient struct {
 	securityParams  coreUtils.SecurityParams
 }
 
-func MakeTLSClient(host string, jsonVerbose bool) TLSClient {
+func MakeTLSClient(host string, jsonVerbose bool) *TLSClient {
 	tlsClient := TLSClient{
 		jsonVerbose:     jsonVerbose,
 		host:            host,
@@ -33,7 +33,7 @@ func MakeTLSClient(host string, jsonVerbose bool) TLSClient {
 		serverSeqNumber: 0,
 	}
 
-	return tlsClient
+	return &tlsClient
 }
 
 func connectToServer(srvAddr string) net.TCPConn {
@@ -54,14 +54,14 @@ func connectToServer(srvAddr string) net.TCPConn {
 	return *conn
 }
 
-func (client TLSClient) Terminate() {
+func (client *TLSClient) Terminate() {
 	err := client.conn.Close()
 	if err != nil {
 		log.Error(err)
 	}
 }
 
-func (client TLSClient) Execute() {
+func (client *TLSClient) Execute() {
 	client.sendClientHello()
 	client.readServerResponse()
 	client.performClientHandshake()
@@ -70,7 +70,7 @@ func (client TLSClient) Execute() {
 	client.receiveApplicationData()
 }
 
-func (client TLSClient) sendToServer(payload []byte) {
+func (client *TLSClient) sendToServer(payload []byte) {
 	log.Info("Sending to server")
 
 	_, err := client.conn.Write(payload)
@@ -81,7 +81,7 @@ func (client TLSClient) sendToServer(payload []byte) {
 	}
 }
 
-func (client TLSClient) readFromServer() []byte {
+func (client *TLSClient) readFromServer() []byte {
 	log.Info("Reading response")
 
 	record := make([]byte, 5)
@@ -110,7 +110,7 @@ func (client TLSClient) readFromServer() []byte {
 	return record
 }
 
-func (client TLSClient) sendClientHello() {
+func (client *TLSClient) sendClientHello() {
 	clientHello := model.MakeClientHello()
 	client.securityParams.ClientRandom = clientHello.ClientRandom
 	clientHelloPayload := clientHello.GetClientHelloPayload()
@@ -124,7 +124,7 @@ func (client TLSClient) sendClientHello() {
 	client.sendToServer(clientHelloPayload)
 }
 
-func (client TLSClient) readServerResponse() {
+func (client *TLSClient) readServerResponse() {
 	var answer []byte
 
 	answer = client.readFromServer()
@@ -188,7 +188,7 @@ func (client TLSClient) readServerResponse() {
 	}
 }
 
-func (client TLSClient) performClientHandshake() {
+func (client *TLSClient) performClientHandshake() {
 	clientKeyExchange := model.MakeClientKeyExchange()
 	client.securityParams.ClientKeyExchangePrivateKey = clientKeyExchange.PrivateKey
 	clientKeyExchangePayload := clientKeyExchange.GetClientKeyExchangePayload()
@@ -204,7 +204,7 @@ func (client TLSClient) performClientHandshake() {
 	//clientChangeCipherSpec is not a handshake message, so it is not included in the hash input
 
 	data := cryptoHelpers.HashByteArray(client.cipherSuite.HashingAlgorithm, client.messages)
-	verifyData := cryptoHelpers.MakeVerifyData(client.securityParams, data)
+	verifyData := cryptoHelpers.MakeVerifyData(&client.securityParams, data)
 	if verifyData == nil {
 		client.Terminate()
 		os.Exit(1)
@@ -216,7 +216,8 @@ func (client TLSClient) performClientHandshake() {
 		// TODO - implement
 		//clientHandshakeFinished.SaveJSON()
 	} else {
-		fmt.Println(clientHandshakeFinished)
+		// TODO - implement
+		//fmt.Println(clientHandshakeFinished)
 	}
 
 	// TODO extract sequence number as global parameter somehow + record type
@@ -230,17 +231,27 @@ func (client TLSClient) performClientHandshake() {
 	client.sendToServer(finalPayload)
 }
 
-func (client TLSClient) readServerHandshakeFinished() {
+func (client *TLSClient) readServerHandshakeFinished() {
 	// TODO - Parse responses
 	answer := client.readFromServer()
-	log.Warn(answer)
+	if client.jsonVerbose {
+		// TODO - implement
+	} else {
+		// TODO - implement
+	}
+	log.Debug(answer)
 
 	answer = client.readFromServer()
-	log.Warn(answer)
+	if client.jsonVerbose {
+		// TODO - implement
+	} else {
+		// TODO - implement
+	}
+	log.Debug(answer)
 	client.serverSeqNumber += 1
 }
 
-func (client TLSClient) sendApplicationData() {
+func (client *TLSClient) sendApplicationData() {
 	// TODO - Parameterize request data
 	requestData := "GET / HTTP/1.1\r\nHost: " + client.host + "\r\n\r\n"
 
@@ -248,18 +259,18 @@ func (client TLSClient) sendApplicationData() {
 	client.sendToServer(clientApplicationData.GetPayload())
 }
 
-func (client TLSClient) receiveApplicationData() {
+func (client *TLSClient) receiveApplicationData() {
 	answer := client.readFromServer()
-	log.Warn(answer)
+	log.Debug(answer)
 
 	serverApplicationData := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
 	client.serverSeqNumber += 1
-	log.Error("Plaintext: ", string(serverApplicationData.Data))
+	log.Info("Plaintext: ", string(serverApplicationData.Data))
 
 	answer = client.readFromServer()
-	log.Warn(answer)
+	log.Debug(answer)
 
 	serverApplicationData = model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
 	client.serverSeqNumber += 1
-	log.Error("Plaintext: ", string(serverApplicationData.Data))
+	log.Info("Plaintext: ", string(serverApplicationData.Data))
 }

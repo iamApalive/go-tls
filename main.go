@@ -5,7 +5,6 @@ import (
 	"github.com/viorelyo/tlsExperiment/core"
 )
 
-
 func initLogger() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
@@ -17,7 +16,7 @@ func initLogger() {
 func main() {
 	initLogger()
 
-	client := core.MakeTLSClient("ubbcluj.ro", false)
+	client := core.MakeTLSClient("tools.ietf.org", false)
 	client.Execute()
 	client.Terminate()
 }

@@ -20,6 +20,7 @@ type ServerHello struct {
 	CompressionMethod [1]byte
 }
 
+// TODO replace println with logs
 func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
 	//println("Parsing Server Hello")
 	offset := 0
@@ -43,7 +44,6 @@ func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
 	if sessionIDLenghtInt > 0 {
 		serverHello.SessionID = answer[offset+35 : offset+sessionIDLenghtInt+35]
 		offset += sessionIDLenghtInt
-		//println("copy sessionIDLenght copied len:", serverHello.SessionIDLenghtInt)
 	}
 
 	copy(serverHello.CipherSuite[:], answer[offset+35:offset+37])

@@ -101,7 +101,7 @@ func KeysFromMasterSecret(masterSecret, clientRandom, serverRandom []byte, macLe
 	return
 }
 
-func GeneratePreMasterSecret(securityParams coreUtils.SecurityParams) []byte {
+func GeneratePreMasterSecret(securityParams *coreUtils.SecurityParams) []byte {
 	publicKeyX, publicKeyY := elliptic.Unmarshal(securityParams.Curve, securityParams.ServerKeyExchangePublicKey)
 	if publicKeyX == nil {
 		return nil
@@ -112,7 +112,7 @@ func GeneratePreMasterSecret(securityParams coreUtils.SecurityParams) []byte {
 }
 
 // Returns the contents of the verify_data member of a client's Finished message.
-func MakeVerifyData(securityParams coreUtils.SecurityParams, data []byte) []byte {
+func MakeVerifyData(securityParams *coreUtils.SecurityParams, data []byte) []byte {
 	preMasterSecret := GeneratePreMasterSecret(securityParams)
 	if preMasterSecret == nil {
 		log.Warn("Could not generate PreMasterSecret")
