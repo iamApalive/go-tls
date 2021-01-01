@@ -10,7 +10,6 @@ import (
 var masterSecretLabel = []byte("master secret")
 var keyExpansionLabel = []byte("key expansion")
 var clientFinishedLabel = []byte("client finished")
-var serverFinishedLabel = []byte("server finished")
 
 const (
 	masterSecretLength   = 48 // Length of a master secret in TLS 1.2.

@@ -9,32 +9,36 @@ import (
 	"io"
 )
 
-func Encrypt(key []byte, iv []byte, plaintext []byte) []byte {
-	block, err := aes.NewCipher(key)
+const (
+	AESGCM_NonceSize = 8
+)
+
+// TODO extract seqNumber & record type from parameters
+func Encrypt(key, iv, plaintext []byte, seqNumber byte, recordType byte) []byte {
+	aes, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err.Error())
 	}
+	aesgcm, err := cipher.NewGCM(aes)
+	//if err != nil {
+	//	panic(err.Error())
+	//}
 
 	// Never use more than 2^32 random nonces with a given key because of the risk of a repeat.
-	// TODO - 8 define as AESGCM.nonce_size
-	nonce := make([]byte, 8)
+	nonce := make([]byte, AESGCM_NonceSize)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		panic(err.Error())
 	}
 	nonceIV := append(iv, nonce...)
 
 	version := constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
-	additionalData := make([]byte, 8)
-	additionalData = append(additionalData, 0x16)
+	additionalData := make([]byte, 7)
+	additionalData = append(additionalData, seqNumber)
+	additionalData = append(additionalData, recordType)
 	additionalData = append(additionalData, version[:]...)
 
 	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(plaintext)))
 	additionalData = append(additionalData, contentBytesLength[:]...)
-
-	aesgcm, err := cipher.NewGCM(block)
-	//if err != nil {
-	//	panic(err.Error())
-	//}
 
 	// Seal encrypts and authenticates plaintext, authenticates the
 	// additional data (aad) and returns ciphertext together with authentication tag.
@@ -42,4 +46,34 @@ func Encrypt(key []byte, iv []byte, plaintext []byte) []byte {
 	// TODO check if nil
 
 	return append(nonce, ciphertext...)
+}
+
+func Decrypt(serverKey, serverIV, ciphertext []byte, seqNumber byte, recordType byte) []byte {
+	aes, err := aes.NewCipher(serverKey)
+	if err != nil {
+		panic(err.Error())
+	}
+	aesgcm, err := cipher.NewGCM(aes)
+	//if err != nil {
+	//	panic(err.Error())
+	//}
+
+	nonce, rest := ciphertext[:AESGCM_NonceSize], ciphertext[AESGCM_NonceSize:]
+	nonceIV := append(serverIV, nonce...)
+
+	version := constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
+	additionalData := make([]byte, 7)
+	additionalData = append(additionalData, seqNumber)
+	additionalData = append(additionalData, recordType)
+	additionalData = append(additionalData, version[:]...)
+
+	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(rest) - 16))
+	additionalData = append(additionalData, contentBytesLength[:]...)
+
+	plaintext, err := aesgcm.Open(nil, nonceIV, rest, additionalData)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return plaintext
 }

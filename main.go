@@ -30,7 +30,7 @@ func connectToServer(srvAddr string) net.TCPConn {
 }
 
 func sendToServer(conn net.TCPConn, payload []byte) {
-	log.Info("Sending 'Client Hello' to server")
+	log.Info("Sending to server")
 
 	_, err := conn.Write(payload)
 	if err != nil {
@@ -158,7 +158,7 @@ func main() {
 
 	masterSecret := cryptoHelpers.MasterFromPreMasterSecret(preMasterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:])
 	//clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 384, 4)
-	_, _, clientKey, _, clientIV, _ := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 32, 4)
+	_, _, clientKey, serverKey, clientIV, serverIV := cryptoHelpers.KeysFromMasterSecret(masterSecret, clientHello.ClientRandom[:], serverHello.ServerRandom[:], 0, 32, 4)
 
 
 	data := cryptoHelpers.VerifyData("SHA384", messages)
@@ -170,29 +170,42 @@ func main() {
 	// TODO Compute client stuff -> Send To Server
 	clientHandshakeFinished := MakeClientHandshakeFinished(clientIV, verifyData)
 
-	var plainContent []byte
-	plainContent = append(plainContent, clientHandshakeFinished.HandshakeHeader.MessageType)
-	plainContent = append(plainContent, clientHandshakeFinished.HandshakeHeader.MessageLength[:]...)
-	plainContent = append(plainContent, clientHandshakeFinished.VerifyData...)
-	log.Info("PlainContent:", plainContent)
+	var plaintext []byte
+	plaintext = append(plaintext, clientHandshakeFinished.HandshakeHeader.MessageType)
+	plaintext = append(plaintext, clientHandshakeFinished.HandshakeHeader.MessageLength[:]...)
+	plaintext = append(plaintext, clientHandshakeFinished.VerifyData...)
 
-	encryptedContent := cryptoHelpers.Encrypt(clientKey, clientIV, plainContent)
-	log.Error(encryptedContent)
+	// TODO extract sequence number as global parameter somehow
+	encryptedContent := cryptoHelpers.Encrypt(clientKey, clientIV, plaintext, 0, 0x16)
 	clientHandshakeFinished.RecordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(encryptedContent)))
-
 
 	finalPayload := append(clientKeyExchangePayload, clientChangeCipherSpec.GetClientChangeCipherSpecPayload()...)
 	finalPayload = append(finalPayload,  clientHandshakeFinished.GetClientHandshakeFinishedPayload(encryptedContent)...)
 
-
 	sendToServer(conn, finalPayload)
 
+	// TODO - Parse responses
 	answer = readFromServer(conn)
 	log.Warn(answer)
 
 	answer = readFromServer(conn)
 	log.Warn(answer)
 
-	//serverHello1, _, err := ParseServerHello(answer)
-	//fmt.Println(serverHello1)
+	// TODO - Parameterize request data
+	requestData := "GET / HTTP/1.1\r\nHost: ubbcluj.ro\r\n\r\n"
+
+	clientApplicationData := MakeApplicationData(clientKey, clientIV, []byte(requestData))
+	sendToServer(conn, clientApplicationData.GetPayload())
+
+	answer = readFromServer(conn)
+	log.Warn(answer)
+
+	serverApplicationData := ParseApplicationData(serverKey, serverIV, answer, 1)
+	log.Error("Plaintext: ", string(serverApplicationData.Data))
+
+	answer = readFromServer(conn)
+	log.Warn(answer)
+
+	serverApplicationData = ParseApplicationData(serverKey, serverIV, answer, 2)
+	log.Error("Plaintext: ", string(serverApplicationData.Data))
 }
