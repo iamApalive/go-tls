@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/viorelyo/tlsExperiment/constants"
+	"github.com/viorelyo/tlsExperiment/helpers"
 )
 
 type ClientHandshakeFinished struct {
@@ -33,7 +34,19 @@ func MakeClientHandshakeFinished(encryptionIV []byte, verifyData []byte) ClientH
 	return clientHandshakeFinished
 }
 
+func (clientHandshakeFinished ClientHandshakeFinished) GetClientHandshakeFinishedPlaintextPayload() []byte {
+	var plaintext []byte
+
+	plaintext = append(plaintext, clientHandshakeFinished.HandshakeHeader.MessageType)
+	plaintext = append(plaintext, clientHandshakeFinished.HandshakeHeader.MessageLength[:]...)
+	plaintext = append(plaintext, clientHandshakeFinished.VerifyData...)
+
+	return plaintext
+}
+
 func (clientHandshakeFinished ClientHandshakeFinished) GetClientHandshakeFinishedPayload(encryptedContent []byte) []byte {
+	clientHandshakeFinished.RecordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(encryptedContent)))
+
 	var payload []byte
 
 	payload = append(payload, clientHandshakeFinished.RecordHeader.Type)

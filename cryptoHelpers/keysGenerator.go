@@ -1,9 +1,13 @@
+//TODO add licence
 package cryptoHelpers
 
 import (
 	"crypto"
+	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/sha512"
+	log "github.com/sirupsen/logrus"
+	"github.com/viorelyo/tlsExperiment/coreUtils"
 	"hash"
 )
 
@@ -14,6 +18,9 @@ var clientFinishedLabel = []byte("client finished")
 const (
 	masterSecretLength   = 48 // Length of a master secret in TLS 1.2.
 	finishedVerifyLength = 12 // Length of verify_data in a Finished message.
+	keyLength            = 32 // Length of client and server key
+	macLength            = 0
+	ivLength             = 4
 )
 
 func prfAndHashForVersion() (func(result, secret, label, seed []byte), crypto.Hash) {
@@ -94,8 +101,28 @@ func KeysFromMasterSecret(masterSecret, clientRandom, serverRandom []byte, macLe
 	return
 }
 
+func GeneratePreMasterSecret(securityParams coreUtils.SecurityParams) []byte {
+	publicKeyX, publicKeyY := elliptic.Unmarshal(securityParams.Curve, securityParams.ServerKeyExchangePublicKey)
+	if publicKeyX == nil {
+		return nil
+	}
+	xShared, _ := securityParams.Curve.ScalarMult(publicKeyX, publicKeyY, securityParams.ClientKeyExchangePrivateKey)
+	sharedKey := make([]byte, (securityParams.Curve.Params().BitSize+7)/8)
+	return xShared.FillBytes(sharedKey)
+}
+
 // Returns the contents of the verify_data member of a client's Finished message.
-func MakeVerifyData(masterSecret []byte, data []byte) []byte {
+func MakeVerifyData(securityParams coreUtils.SecurityParams, data []byte) []byte {
+	preMasterSecret := GeneratePreMasterSecret(securityParams)
+	if preMasterSecret == nil {
+		log.Warn("Could not generate PreMasterSecret")
+		return nil
+	}
+
+	masterSecret := MasterFromPreMasterSecret(preMasterSecret, securityParams.ClientRandom[:], securityParams.ServerRandom[:])
+	securityParams.ClientMAC, securityParams.ServerMAC, securityParams.ClientKey, securityParams.ServerKey, securityParams.ClientIV, securityParams.ServerIV =
+		KeysFromMasterSecret(masterSecret, securityParams.ClientRandom[:], securityParams.ServerRandom[:], macLength, keyLength, ivLength)
+
 	out := make([]byte, finishedVerifyLength)
 	prfForVersion()(out, masterSecret, clientFinishedLabel, data)
 	return out
