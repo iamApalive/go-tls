@@ -16,7 +16,7 @@ func initLogger() {
 func main() {
 	initLogger()
 
-	client := core.MakeTLSClient("tools.ietf.org", false)
+	client := core.MakeTLSClient("ubbcluj.ro", false)
 	client.Execute()
 	client.Terminate()
 }

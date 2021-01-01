@@ -197,7 +197,8 @@ func (client *TLSClient) performClientHandshake() {
 		// TODO - implement
 		//clientKeyExchange.SaveJSON()
 	} else {
-		fmt.Println(clientKeyExchange)
+		// TODO - implement
+		//fmt.Println(clientKeyExchange)
 	}
 
 	clientChangeCipherSpec := model.MakeClientChangeCipherSpec()
@@ -234,12 +235,12 @@ func (client *TLSClient) performClientHandshake() {
 func (client *TLSClient) readServerHandshakeFinished() {
 	// TODO - Parse responses
 	answer := client.readFromServer()
+	serverChangeCipherSpec, _ := model.ParseServerChangeCipherSpec(answer)
 	if client.jsonVerbose {
-		// TODO - implement
+		// TODO - implement?
 	} else {
-		// TODO - implement
+		fmt.Println(serverChangeCipherSpec)
 	}
-	log.Debug(answer)
 
 	answer = client.readFromServer()
 	if client.jsonVerbose {
