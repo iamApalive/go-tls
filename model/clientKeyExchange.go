@@ -16,7 +16,7 @@ type ClientKeyExchange struct {
 }
 
 // TODO de-hardcode P256
-func MakeClientKeyExchange() ClientKeyExchange {
+func MakeClientKeyExchange(tlsVersion [2]byte) ClientKeyExchange {
 	curve := elliptic.P256()
 	//TODO do not ignore error
 	privateKey, privateKeyX, privateKeyY, _ := elliptic.GenerateKey(curve, rand.Reader)
@@ -31,8 +31,8 @@ func MakeClientKeyExchange() ClientKeyExchange {
 	clientKeyExchange.PrivateKey = privateKey
 
 	recordHeader := RecordHeader{}
-	recordHeader.Type = 0x16
-	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
+	recordHeader.Type = constants.RecordHandshake
+	recordHeader.ProtocolVersion = tlsVersion
 
 	handshakeHeader := HandshakeHeader{}
 	handshakeHeader.MessageType = constants.HandshakeClientKeyExchange

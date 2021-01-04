@@ -13,12 +13,12 @@ type ClientHandshakeFinished struct {
 }
 
 // TODO - remove ecnryptionIV
-func MakeClientHandshakeFinished(encryptionIV []byte, verifyData []byte) ClientHandshakeFinished {
+func MakeClientHandshakeFinished(verifyData []byte, tlsVersion [2]byte) ClientHandshakeFinished {
 	clientHandshakeFinished := ClientHandshakeFinished{}
 
 	recordHeader := RecordHeader{}
-	recordHeader.Type = 0x16
-	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
+	recordHeader.Type = constants.RecordHandshake
+	recordHeader.ProtocolVersion = tlsVersion
 	clientHandshakeFinished.RecordHeader = recordHeader
 	//recordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(encryptionIV) + len(verifyData)))
 	//recordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(verifyData) + 4))
@@ -28,7 +28,6 @@ func MakeClientHandshakeFinished(encryptionIV []byte, verifyData []byte) ClientH
 	handshakeHeader.MessageLength = [3]byte {0x00, 0x00, 0x0c}	// length of verifyData = 12
 	clientHandshakeFinished.HandshakeHeader = handshakeHeader
 
-	//clientHandshakeFinished.EncryptionIV = encryptionIV
 	clientHandshakeFinished.VerifyData = verifyData
 
 	return clientHandshakeFinished

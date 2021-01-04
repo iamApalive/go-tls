@@ -23,18 +23,17 @@ type ClientHello struct {
 	CompressionMethods       []byte
 }
 
-func MakeClientHello() ClientHello {
+func MakeClientHello(tlsVersion [2]byte) ClientHello {
 	clientHello := ClientHello{}
 
 	recordHeader := RecordHeader{}
-	recordHeader.Type = 0x16
+	recordHeader.Type = constants.RecordHandshake
 	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.0")
 
 	handshakeHeader := HandshakeHeader{}
 	handshakeHeader.MessageType = constants.HandshakeClientHello
 
-	clientHello.ClientVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
-	// TODO Create random array
+	clientHello.ClientVersion = tlsVersion
 	clientRandom := make([]byte, 32)
 	_, err := rand.Read(clientRandom)
 	//if (err !=)

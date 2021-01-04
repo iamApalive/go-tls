@@ -10,12 +10,13 @@ type ClientChangeCipherSpec struct {
 	Payload      byte
 }
 
-func MakeClientChangeCipherSpec() ClientChangeCipherSpec {
+func MakeClientChangeCipherSpec(tlsVersion [2]byte) ClientChangeCipherSpec {
 	clientChangeCipherSpec := ClientChangeCipherSpec{}
 
 	recordHeader := RecordHeader{}
-	recordHeader.Type = 0x14
-	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
+	//TODO record type as constant
+	recordHeader.Type = constants.RecordChangeCipherSpec
+	recordHeader.ProtocolVersion = tlsVersion
 	recordHeader.Length = helpers.ConvertIntToByteArray(uint16(1))
 
 	clientChangeCipherSpec.RecordHeader = recordHeader

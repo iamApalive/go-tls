@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/viorelyo/tlsExperiment/constants"
+	"github.com/viorelyo/tlsExperiment/coreUtils"
 	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
@@ -12,15 +12,15 @@ type ApplicationData struct {
 	Payload      []byte
 }
 
-func MakeApplicationData(key, iv, data []byte) ApplicationData {
+func MakeApplicationData(clientKey, clientIV, data []byte, additionalData coreUtils.AdditionalData) ApplicationData {
 	clientApplicationData := ApplicationData{}
 	clientApplicationData.Data = data
 
-	clientApplicationData.Payload = cryptoHelpers.Encrypt(key, iv, data, 1, 0x17)
+	clientApplicationData.Payload = cryptoHelpers.Encrypt(clientKey, clientIV, data, additionalData)
 
 	recordHeader := RecordHeader{}
-	recordHeader.Type = 0x17
-	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
+	recordHeader.Type = additionalData.RecordType
+	recordHeader.ProtocolVersion = additionalData.TlsVersion
 	recordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(clientApplicationData.Payload)))
 
 	clientApplicationData.RecordHeader = recordHeader
@@ -39,7 +39,7 @@ func (applicationData ApplicationData) GetPayload() []byte {
 	return payload
 }
 
-func ParseApplicationData(serverKey, serverIV, answer []byte, seqNum byte) ApplicationData {
+func ParseApplicationData(serverKey, serverIV, answer []byte, serverSeqNumber byte) ApplicationData {
 	offset := 0
 	serverApplicationData := ApplicationData{}
 
@@ -48,7 +48,8 @@ func ParseApplicationData(serverKey, serverIV, answer []byte, seqNum byte) Appli
 
 	serverApplicationData.Payload = answer[offset:]
 
-	serverApplicationData.Data = cryptoHelpers.Decrypt(serverKey, serverIV, serverApplicationData.Payload, seqNum, serverApplicationData.RecordHeader.Type)
+	additionalData := *coreUtils.MakeAdditionalData(serverSeqNumber, serverApplicationData.RecordHeader.Type, serverApplicationData.RecordHeader.ProtocolVersion)
+	serverApplicationData.Data = cryptoHelpers.Decrypt(serverKey, serverIV, serverApplicationData.Payload, additionalData)
 
 	return serverApplicationData
 }

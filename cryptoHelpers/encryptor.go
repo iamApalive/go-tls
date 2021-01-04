@@ -4,7 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"github.com/viorelyo/tlsExperiment/constants"
+	log "github.com/sirupsen/logrus"
+	"github.com/viorelyo/tlsExperiment/coreUtils"
 	"github.com/viorelyo/tlsExperiment/helpers"
 	"io"
 )
@@ -14,65 +15,66 @@ const (
 )
 
 // TODO extract seqNumber & record type from parameters
-func Encrypt(key, iv, plaintext []byte, seqNumber byte, recordType byte) []byte {
-	aes, err := aes.NewCipher(key)
+func Encrypt(clientKey, clientIV, plaintext []byte, additionalData coreUtils.AdditionalData) []byte {
+	aes, err := aes.NewCipher(clientKey)
 	if err != nil {
 		panic(err.Error())
 	}
 	aesgcm, err := cipher.NewGCM(aes)
-	//if err != nil {
-	//	panic(err.Error())
-	//}
+	if err != nil {
+		log.Error("Failed to get cipher: ", err.Error())
+	}
 
-	// Never use more than 2^32 random nonces with a given key because of the risk of a repeat.
+	// Never use more than 2^32 random nonces with a given clientKey because of the risk of a repeat.
 	nonce := make([]byte, AESGCM_NonceSize)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		panic(err.Error())
 	}
-	nonceIV := append(iv, nonce...)
+	nonceIV := append(clientIV, nonce...)
 
-	version := constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
-	additionalData := make([]byte, 7)
-	additionalData = append(additionalData, seqNumber)
-	additionalData = append(additionalData, recordType)
-	additionalData = append(additionalData, version[:]...)
+	additionalDataPayload := make([]byte, 7)
+	additionalDataPayload = append(additionalDataPayload, additionalData.SeqNumber)
+	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
+	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
 
 	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(plaintext)))
-	additionalData = append(additionalData, contentBytesLength[:]...)
+	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
 	// Seal encrypts and authenticates plaintext, authenticates the
 	// additional data (aad) and returns ciphertext together with authentication tag.
-	ciphertext := aesgcm.Seal(nil, nonceIV, plaintext, additionalData)
-	// TODO check if nil
+	ciphertext := aesgcm.Seal(nil, nonceIV, plaintext, additionalDataPayload)
+	if ciphertext == nil {
+		//TODO throw error encryption failed
+		log.Error("Encrypted content is nil")
+	}
 
 	return append(nonce, ciphertext...)
 }
 
-func Decrypt(serverKey, serverIV, ciphertext []byte, seqNumber byte, recordType byte) []byte {
+func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData coreUtils.AdditionalData) []byte {
 	aes, err := aes.NewCipher(serverKey)
 	if err != nil {
 		panic(err.Error())
 	}
 	aesgcm, err := cipher.NewGCM(aes)
-	//if err != nil {
-	//	panic(err.Error())
-	//}
+	if err != nil {
+		log.Error("Failed to encrypt message: ", err.Error())
+	}
 
 	nonce, rest := ciphertext[:AESGCM_NonceSize], ciphertext[AESGCM_NonceSize:]
 	nonceIV := append(serverIV, nonce...)
 
-	version := constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
-	additionalData := make([]byte, 7)
-	additionalData = append(additionalData, seqNumber)
-	additionalData = append(additionalData, recordType)
-	additionalData = append(additionalData, version[:]...)
+	additionalDataPayload := make([]byte, 7)
+	additionalDataPayload = append(additionalDataPayload, additionalData.SeqNumber)
+	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
+	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
 
 	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(rest) - 16))
-	additionalData = append(additionalData, contentBytesLength[:]...)
+	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
-	plaintext, err := aesgcm.Open(nil, nonceIV, rest, additionalData)
+	plaintext, err := aesgcm.Open(nil, nonceIV, rest, additionalDataPayload)
 	if err != nil {
-		panic(err.Error())
+		log.Error("Failed to decrypt message: ", err.Error())
 	}
 
 	return plaintext
