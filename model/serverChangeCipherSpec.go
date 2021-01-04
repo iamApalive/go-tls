@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
 	"os"
 )
@@ -20,7 +21,7 @@ func ParseServerChangeCipherSpec(answer []byte) (ServerChangeCipherSpec, []byte,
 	serverChangeCipherSpec.RecordHeader = ParseRecordHeader(answer[:5])
 	offset += 5
 
-	if serverChangeCipherSpec.RecordHeader.Type != 0x14 {
+	if serverChangeCipherSpec.RecordHeader.Type != constants.RecordChangeCipherSpec {
 		log.Error("RecordType mismatch")
 		return serverChangeCipherSpec, answer, helpers.ServerChangeCipherSpecError()
 	}

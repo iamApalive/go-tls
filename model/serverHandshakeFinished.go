@@ -25,7 +25,7 @@ func ParseServerHandshakeFinished(serverKey, serverIV, answer []byte, seqNum byt
 	serverHandshakeFinished.RecordHeader = ParseRecordHeader(answer[:5])
 	offset += 5
 
-	if serverHandshakeFinished.RecordHeader.Type != 0x16 {
+	if serverHandshakeFinished.RecordHeader.Type != constants.RecordHandshake {
 		log.Error("RecordType mismatch")
 		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedError()
 	}
