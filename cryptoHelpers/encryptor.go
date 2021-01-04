@@ -51,7 +51,7 @@ func Encrypt(clientKey, clientIV, plaintext []byte, additionalData coreUtils.Add
 	return append(nonce, ciphertext...)
 }
 
-func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData coreUtils.AdditionalData) []byte {
+func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData *coreUtils.AdditionalData) []byte {
 	aes, err := aes.NewCipher(serverKey)
 	if err != nil {
 		panic(err.Error())

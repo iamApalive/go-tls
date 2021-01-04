@@ -7,11 +7,9 @@ type AdditionalData struct {
 }
 
 func MakeAdditionalData(seqNumber byte, recordType byte, tlsVersion [2]byte) *AdditionalData {
-	additionalData := AdditionalData{
+	return &AdditionalData{
 		SeqNumber:  seqNumber,
 		RecordType: recordType,
 		TlsVersion: tlsVersion,
 	}
-
-	return &additionalData
 }

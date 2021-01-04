@@ -8,11 +8,9 @@ import (
 type ClientHandshakeFinished struct {
 	RecordHeader    RecordHeader
 	HandshakeHeader HandshakeHeader
-	EncryptionIV    []byte
 	VerifyData      []byte
 }
 
-// TODO - remove ecnryptionIV
 func MakeClientHandshakeFinished(verifyData []byte, tlsVersion [2]byte) ClientHandshakeFinished {
 	clientHandshakeFinished := ClientHandshakeFinished{}
 
@@ -20,11 +18,10 @@ func MakeClientHandshakeFinished(verifyData []byte, tlsVersion [2]byte) ClientHa
 	recordHeader.Type = constants.RecordHandshake
 	recordHeader.ProtocolVersion = tlsVersion
 	clientHandshakeFinished.RecordHeader = recordHeader
-	//recordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(encryptionIV) + len(verifyData)))
-	//recordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(verifyData) + 4))
 
 	handshakeHeader := HandshakeHeader{}
 	handshakeHeader.MessageType = constants.HandshakeClientFinished
+	// TODO check that the length is not hardcoded
 	handshakeHeader.MessageLength = [3]byte {0x00, 0x00, 0x0c}	// length of verifyData = 12
 	clientHandshakeFinished.HandshakeHeader = handshakeHeader
 

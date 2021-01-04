@@ -14,4 +14,5 @@ const (
 	HandshakeServerHelloDone   = 0x0e
 	HandshakeClientKeyExchange = 0x10
 	HandshakeClientFinished    = 0x14
+	HandshakeServerFinished    = 0x14
 )

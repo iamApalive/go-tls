@@ -36,12 +36,11 @@ func MakeClientHello(tlsVersion [2]byte) ClientHello {
 	clientHello.ClientVersion = tlsVersion
 	clientRandom := make([]byte, 32)
 	_, err := rand.Read(clientRandom)
-	//if (err !=)
-	log.Warn(err)
-	//clientHello.ClientRandom = [32]byte{}
-	var clientHelloFixedSize [32]byte
-	copy(clientHelloFixedSize[:], clientRandom)
-	clientHello.ClientRandom = clientHelloFixedSize
+	if err != nil {
+		log.Warn(err)
+	}
+
+	copy(clientHello.ClientRandom[:], clientRandom)
 
 	clientHello.SessionID = [1]byte{0x00}
 

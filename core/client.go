@@ -236,23 +236,34 @@ func (client *TLSClient) performClientHandshake() {
 }
 
 func (client *TLSClient) readServerHandshakeFinished() {
-	// TODO - Parse responses
 	answer := client.readFromServer()
-	serverChangeCipherSpec, _ := model.ParseServerChangeCipherSpec(answer)
+	serverChangeCipherSpec, _, err := model.ParseServerChangeCipherSpec(answer)
+	if err != nil {
+		log.Warn(err)
+		client.Terminate()
+		os.Exit(1)
+	}
+
 	if client.jsonVerbose {
-		// TODO - implement?
+		serverChangeCipherSpec.SaveJSON()
 	} else {
 		fmt.Println(serverChangeCipherSpec)
 	}
 
 	answer = client.readFromServer()
-	if client.jsonVerbose {
-		// TODO - implement
-	} else {
-		// TODO - implement
+	serverHandshakeFinished, _, err := model.ParseServerHandshakeFinished(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, 0)
+	if err != nil {
+		log.Warn(err)
+		client.Terminate()
+		os.Exit(1)
 	}
-	log.Debug(answer)
 	client.serverSeqNumber += 1
+
+	if client.jsonVerbose {
+		serverHandshakeFinished.SaveJSON()
+	} else {
+		fmt.Println(serverHandshakeFinished)
+	}
 }
 
 func (client *TLSClient) sendApplicationData() {

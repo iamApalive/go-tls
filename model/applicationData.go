@@ -5,7 +5,7 @@ import (
 	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
-
+// TODO refactor this!
 type ApplicationData struct {
 	RecordHeader RecordHeader
 	Data         []byte
@@ -48,7 +48,7 @@ func ParseApplicationData(serverKey, serverIV, answer []byte, serverSeqNumber by
 
 	serverApplicationData.Payload = answer[offset:]
 
-	additionalData := *coreUtils.MakeAdditionalData(serverSeqNumber, serverApplicationData.RecordHeader.Type, serverApplicationData.RecordHeader.ProtocolVersion)
+	additionalData := coreUtils.MakeAdditionalData(serverSeqNumber, serverApplicationData.RecordHeader.Type, serverApplicationData.RecordHeader.ProtocolVersion)
 	serverApplicationData.Data = cryptoHelpers.Decrypt(serverKey, serverIV, serverApplicationData.Payload, additionalData)
 
 	return serverApplicationData

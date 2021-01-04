@@ -1,7 +1,11 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
 type ServerChangeCipherSpec struct {
@@ -9,17 +13,28 @@ type ServerChangeCipherSpec struct {
 	Payload      byte
 }
 
-func ParseServerChangeCipherSpec(answer []byte) (ServerChangeCipherSpec, []byte) {
+func ParseServerChangeCipherSpec(answer []byte) (ServerChangeCipherSpec, []byte, error) {
 	var offset uint32
 	offset = 0
 	serverChangeCipherSpec := ServerChangeCipherSpec{}
 	serverChangeCipherSpec.RecordHeader = ParseRecordHeader(answer[:5])
 	offset += 5
 
+	if serverChangeCipherSpec.RecordHeader.Type != 0x14 {
+		log.Error("RecordType mismatch")
+		return serverChangeCipherSpec, answer, helpers.ServerChangeCipherSpecError()
+	}
+
 	serverChangeCipherSpec.Payload = answer[offset]
 	offset += 1
 
-	return serverChangeCipherSpec, answer
+	return serverChangeCipherSpec, answer, nil
+}
+
+func (serverChangeCipherSpec ServerChangeCipherSpec) SaveJSON() {
+	file, _ := os.OpenFile("ServerChangeCipherSpec.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&serverChangeCipherSpec)
 }
 
 func (serverChangeCipherSpec ServerChangeCipherSpec) String() string {
@@ -27,4 +42,14 @@ func (serverChangeCipherSpec ServerChangeCipherSpec) String() string {
 	out += fmt.Sprint(serverChangeCipherSpec.RecordHeader)
 	out += fmt.Sprintf("  Payload.........: %6x\n", serverChangeCipherSpec.Payload)
 	return out
+}
+
+func (serverChangeCipherSpec *ServerChangeCipherSpec) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader RecordHeader `json:"RecordHeader"`
+		Payload      byte         `json:"Payload"`
+	}{
+		RecordHeader: serverChangeCipherSpec.RecordHeader,
+		Payload:      serverChangeCipherSpec.Payload,
+	})
 }
