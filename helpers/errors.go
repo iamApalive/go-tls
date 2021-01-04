@@ -6,6 +6,8 @@ type ParsingError struct {
 	IsServerHelloMissingError       bool
 	IsServerCertificateMissingError bool
 	IsServerHelloDoneMissingError   bool
+	IsServerChangeCipherSpecError   bool
+	IsServerHandshakeFinishedError  bool
 }
 
 func (pe *ParsingError) Error() string {
@@ -23,6 +25,12 @@ func (pe *ParsingError) Error() string {
 	}
 	if pe.IsServerHelloDoneMissingError {
 		return "ServerHelloDone missing!"
+	}
+	if pe.IsServerChangeCipherSpecError {
+		return "ServerChangeCipherSpec missing!"
+	}
+	if pe.IsServerHandshakeFinishedError {
+		return "ServerHandshakeFinished missing!"
 	}
 	return "Undefined error"
 }
@@ -45,4 +53,12 @@ func ServerKeyExchangeMissingError() error {
 
 func ServerHelloDoneMissingError() error {
 	return &ParsingError{IsServerHelloDoneMissingError: true}
+}
+
+func ServerChangeCipherSpecError() error {
+	return &ParsingError{IsServerChangeCipherSpecError: true}
+}
+
+func ServerHandshakeFinishedError() error {
+	return &ParsingError{IsServerHandshakeFinishedError: true}
 }

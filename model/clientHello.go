@@ -23,31 +23,30 @@ type ClientHello struct {
 	CompressionMethods       []byte
 }
 
-func MakeClientHello() ClientHello {
+func MakeClientHello(tlsVersion [2]byte) ClientHello {
 	clientHello := ClientHello{}
 
 	recordHeader := RecordHeader{}
-	recordHeader.Type = 0x16
+	recordHeader.Type = constants.RecordHandshake
 	recordHeader.ProtocolVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.0")
 
 	handshakeHeader := HandshakeHeader{}
 	handshakeHeader.MessageType = constants.HandshakeClientHello
 
-	clientHello.ClientVersion = constants.GTlsVersions.GetByteCodeForVersion("TLS 1.2")
-	// TODO Create random array
+	clientHello.ClientVersion = tlsVersion
 	clientRandom := make([]byte, 32)
 	_, err := rand.Read(clientRandom)
-	//if (err !=)
-	log.Warn(err)
-	//clientHello.ClientRandom = [32]byte{}
-	var clientHelloFixedSize [32]byte
-	copy(clientHelloFixedSize[:], clientRandom)
-	clientHello.ClientRandom = clientHelloFixedSize
+	if err != nil {
+		log.Warn(err)
+	}
+
+	copy(clientHello.ClientRandom[:], clientRandom)
 
 	clientHello.SessionID = [1]byte{0x00}
 
 	//suitesByteCode := constants.GCipherSuites.GetSuiteByteCodes(constants.GCipherSuites.GetAllSuites())
-	// TODO 7.4.3 TLS docs: whether serverKeyExchange is sent depends on used key exchange method.
+	// According to TLS 1.2 documentation, part 7.4.3:
+	// Server Key Exchange Message is sent by the server only for certain key exchange message, including ECDHE
 	suitesByteCode := constants.GCipherSuites.GetByteCodeForSuite("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384")
 
 	clientHello.CipherSuite = suitesByteCode[:]
