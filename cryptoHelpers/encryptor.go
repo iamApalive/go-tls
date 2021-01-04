@@ -77,6 +77,7 @@ func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData *coreUtils.A
 	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
 	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
 
+	// TODO wtf is 16?
 	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(rest) - 16))
 	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 

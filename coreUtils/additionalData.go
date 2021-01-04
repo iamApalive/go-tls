@@ -14,4 +14,6 @@ func MakeAdditionalData(seqNumber byte, recordType byte, tlsVersion [2]byte) *Ad
 	}
 }
 
-//TODO - add getPayload
+func (additionalData *AdditionalData) GetPayload() {
+	//TODO implement this
+}
