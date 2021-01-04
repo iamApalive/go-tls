@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
 	"os"
@@ -20,9 +21,8 @@ type ServerHello struct {
 	CompressionMethod [1]byte
 }
 
-// TODO replace println with logs
 func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
-	//println("Parsing Server Hello")
+	log.Info("Parsing Server Hello")
 	offset := 0
 	serverHello := ServerHello{}
 

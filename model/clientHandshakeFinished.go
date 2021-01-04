@@ -12,7 +12,6 @@ type ClientHandshakeFinished struct {
 	VerifyData      []byte
 }
 
-// TODO - remove ecnryptionIV
 func MakeClientHandshakeFinished(verifyData []byte, tlsVersion [2]byte) ClientHandshakeFinished {
 	clientHandshakeFinished := ClientHandshakeFinished{}
 

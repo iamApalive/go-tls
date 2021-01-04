@@ -46,7 +46,8 @@ func MakeClientHello(tlsVersion [2]byte) ClientHello {
 	clientHello.SessionID = [1]byte{0x00}
 
 	//suitesByteCode := constants.GCipherSuites.GetSuiteByteCodes(constants.GCipherSuites.GetAllSuites())
-	// TODO 7.4.3 TLS docs: whether serverKeyExchange is sent depends on used key exchange method.
+	// According to TLS 1.2 documentation, part 7.4.3:
+	// Server Key Exchange Message is sent by the server only for certain key exchange message, including ECDHE
 	suitesByteCode := constants.GCipherSuites.GetByteCodeForSuite("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384")
 
 	clientHello.CipherSuite = suitesByteCode[:]
