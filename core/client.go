@@ -206,15 +206,24 @@ func (client *TLSClient) performClientHandshake() {
 	clientChangeCipherSpec := model.MakeClientChangeCipherSpec(client.tlsVersion)
 	//clientChangeCipherSpec is not a handshake message, so it is not included in the hash input
 
+	// TODO maybe move this to MakeClientHandshakeFinished
 	data := cryptoHelpers.HashByteArray(client.cipherSuite.HashingAlgorithm, client.messages)
 	verifyData := cryptoHelpers.MakeVerifyData(&client.securityParams, data)
 	if verifyData == nil {
+		log.Error("Could not create VerifyData")
 		client.Terminate()
 		os.Exit(1)
 	}
 
 	// TODO Compute client stuff -> Send To Server
-	clientHandshakeFinished := model.MakeClientHandshakeFinished(verifyData, client.tlsVersion)
+	clientHandshakeFinished, err := model.MakeClientHandshakeFinished(client.securityParams.ClientKey, client.securityParams.ClientIV, verifyData, client.tlsVersion, client.clientSeqNumber)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
+	}
+	client.clientSeqNumber += 1
+
 	if client.jsonVerbose {
 		// TODO - implement
 		//clientHandshakeFinished.SaveJSON()
@@ -223,13 +232,9 @@ func (client *TLSClient) performClientHandshake() {
 		//fmt.Println(clientHandshakeFinished)
 	}
 
-	additionalData := *coreUtils.MakeAdditionalData(client.clientSeqNumber, constants.RecordHandshake, client.tlsVersion)
-	encryptedContent := cryptoHelpers.Encrypt(client.securityParams.ClientKey, client.securityParams.ClientIV, clientHandshakeFinished.GetClientHandshakeFinishedPlaintextPayload(), additionalData)
-	client.clientSeqNumber += 1
-
 	// Send ClientKeyExchange, ClientChangeCipherSpec, ClientHandshakeFinished on the same tcp connection
 	finalPayload := append(clientKeyExchangePayload, clientChangeCipherSpec.GetClientChangeCipherSpecPayload()...)
-	finalPayload = append(finalPayload, clientHandshakeFinished.GetClientHandshakeFinishedPayload(encryptedContent)...)
+	finalPayload = append(finalPayload, clientHandshakeFinished.GetClientHandshakeFinishedPayload()...)
 
 	client.sendToServer(finalPayload)
 }
@@ -269,8 +274,12 @@ func (client *TLSClient) sendApplicationData() {
 	// TODO - Parameterize request data
 	requestData := "GET / HTTP/1.1\r\nHost: " + client.host + "\r\n\r\n"
 
-	additionalData := *coreUtils.MakeAdditionalData(client.clientSeqNumber, constants.RecordApplicationData, client.tlsVersion)
-	clientApplicationData := model.MakeApplicationData(client.securityParams.ClientKey, client.securityParams.ClientIV, []byte(requestData), additionalData)
+	clientApplicationData, err := model.MakeApplicationData(client.securityParams.ClientKey, client.securityParams.ClientIV, []byte(requestData), client.tlsVersion, client.clientSeqNumber)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
+	}
 	client.sendToServer(clientApplicationData.GetPayload())
 }
 
@@ -278,14 +287,24 @@ func (client *TLSClient) receiveApplicationData() {
 	answer := client.readFromServer()
 	log.Debug(answer)
 
-	serverApplicationData := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
+	serverApplicationData, err := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
+	}
 	client.serverSeqNumber += 1
 	log.Info("Plaintext: ", string(serverApplicationData.Data))
 
 	answer = client.readFromServer()
 	log.Debug(answer)
 
-	serverApplicationData = model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
+	serverApplicationData, err = model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
+	}
 	client.serverSeqNumber += 1
 	log.Info("Plaintext: ", string(serverApplicationData.Data))
 }

@@ -1,31 +1,38 @@
 package model
 
 import (
+	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/coreUtils"
 	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
-// TODO refactor this!
+
 type ApplicationData struct {
 	RecordHeader RecordHeader
 	Data         []byte
 	Payload      []byte
 }
 
-func MakeApplicationData(clientKey, clientIV, data []byte, additionalData coreUtils.AdditionalData) ApplicationData {
+func MakeApplicationData(clientKey, clientIV, data []byte, tlsVersion [2]byte, seqNum byte) (ApplicationData, error) {
 	clientApplicationData := ApplicationData{}
 	clientApplicationData.Data = data
 
-	clientApplicationData.Payload = cryptoHelpers.Encrypt(clientKey, clientIV, data, additionalData)
-
 	recordHeader := RecordHeader{}
-	recordHeader.Type = additionalData.RecordType
-	recordHeader.ProtocolVersion = additionalData.TlsVersion
-	recordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(clientApplicationData.Payload)))
-
+	recordHeader.Type = constants.RecordApplicationData
+	recordHeader.ProtocolVersion = tlsVersion
 	clientApplicationData.RecordHeader = recordHeader
 
-	return clientApplicationData
+	additionalData := coreUtils.MakeAdditionalData(seqNum, constants.RecordApplicationData, tlsVersion)
+	encryptedContent, err := cryptoHelpers.Encrypt(clientKey, clientIV, data, additionalData)
+	if err != nil {
+		return clientApplicationData, err
+	}
+
+	clientApplicationData.Payload = encryptedContent
+
+	clientApplicationData.RecordHeader.Length = helpers.ConvertIntToByteArray(uint16(len(clientApplicationData.Payload)))
+
+	return clientApplicationData, nil
 }
 
 func (applicationData ApplicationData) GetPayload() []byte {
@@ -39,7 +46,7 @@ func (applicationData ApplicationData) GetPayload() []byte {
 	return payload
 }
 
-func ParseApplicationData(serverKey, serverIV, answer []byte, serverSeqNumber byte) ApplicationData {
+func ParseApplicationData(serverKey, serverIV, answer []byte, seqNum byte) (ApplicationData, error) {
 	offset := 0
 	serverApplicationData := ApplicationData{}
 
@@ -48,8 +55,13 @@ func ParseApplicationData(serverKey, serverIV, answer []byte, serverSeqNumber by
 
 	serverApplicationData.Payload = answer[offset:]
 
-	additionalData := coreUtils.MakeAdditionalData(serverSeqNumber, serverApplicationData.RecordHeader.Type, serverApplicationData.RecordHeader.ProtocolVersion)
-	serverApplicationData.Data = cryptoHelpers.Decrypt(serverKey, serverIV, serverApplicationData.Payload, additionalData)
+	additionalData := coreUtils.MakeAdditionalData(seqNum, serverApplicationData.RecordHeader.Type, serverApplicationData.RecordHeader.ProtocolVersion)
+	plaintext, err := cryptoHelpers.Decrypt(serverKey, serverIV, serverApplicationData.Payload, additionalData)
+	if err != nil {
+		return serverApplicationData, err
+	}
 
-	return serverApplicationData
+	serverApplicationData.Data = plaintext
+
+	return serverApplicationData, nil
 }

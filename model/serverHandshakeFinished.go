@@ -33,7 +33,10 @@ func ParseServerHandshakeFinished(serverKey, serverIV, answer []byte, seqNum byt
 	encryptedContent := answer[offset:]
 
 	additionalData := coreUtils.MakeAdditionalData(seqNum, serverHandshakeFinished.RecordHeader.Type, serverHandshakeFinished.RecordHeader.ProtocolVersion)
-	plaintext := cryptoHelpers.Decrypt(serverKey, serverIV, encryptedContent, additionalData)
+	plaintext, err := cryptoHelpers.Decrypt(serverKey, serverIV, encryptedContent, additionalData)
+	if err != nil {
+		return serverHandshakeFinished, answer, err
+	}
 
 	offset = 0
 	serverHandshakeFinished.HandshakeHeader = ParseHandshakeHeader(plaintext[offset : offset+4])
