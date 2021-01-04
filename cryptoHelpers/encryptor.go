@@ -14,7 +14,11 @@ const (
 	AESGCM_NonceSize = 8
 )
 
-// TODO extract seqNumber & record type from parameters
+// TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 uses an AEAD cipher for authentication
+// AEAD ciphers take as input a single key, a nonce, a plaintext, and
+// "additional data" to be included in the authentication check.
+// The key is either the client_write_key or the server_write_key. No MAC key is used.
+
 func Encrypt(clientKey, clientIV, plaintext []byte, additionalData coreUtils.AdditionalData) []byte {
 	aes, err := aes.NewCipher(clientKey)
 	if err != nil {

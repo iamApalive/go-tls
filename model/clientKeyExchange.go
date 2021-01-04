@@ -3,6 +3,7 @@ package model
 import (
 	"crypto/elliptic"
 	"crypto/rand"
+	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
 )
@@ -15,14 +16,14 @@ type ClientKeyExchange struct {
 	PrivateKey      []byte
 }
 
-// TODO de-hardcode P256
-func MakeClientKeyExchange(tlsVersion [2]byte) ClientKeyExchange {
-	curve := elliptic.P256()
-	//TODO do not ignore error
-	privateKey, privateKeyX, privateKeyY, _ := elliptic.GenerateKey(curve, rand.Reader)
+func MakeClientKeyExchange(tlsVersion [2]byte, curve elliptic.Curve) ClientKeyExchange {
+	privateKey, privateKeyX, privateKeyY, err := elliptic.GenerateKey(curve, rand.Reader)
+	if err != nil {
+		// TODO throw error
+		log.Error("Failed to generate private key")
+	}
 
 	publicKey := elliptic.Marshal(curve, privateKeyX, privateKeyY)
-	//log.Info(publicKeyArr)
 
 	clientKeyExchange := ClientKeyExchange{}
 	clientKeyExchange.PublicKeyLength = byte(len(publicKey))

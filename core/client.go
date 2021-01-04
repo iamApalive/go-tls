@@ -191,7 +191,7 @@ func (client *TLSClient) readServerResponse() {
 }
 
 func (client *TLSClient) performClientHandshake() {
-	clientKeyExchange := model.MakeClientKeyExchange(client.tlsVersion)
+	clientKeyExchange := model.MakeClientKeyExchange(client.tlsVersion, client.securityParams.Curve)
 	client.securityParams.ClientKeyExchangePrivateKey = clientKeyExchange.PrivateKey
 	clientKeyExchangePayload := clientKeyExchange.GetClientKeyExchangePayload()
 	client.messages = append(client.messages, helpers.IgnoreRecordHeader(clientKeyExchangePayload)...)
@@ -223,7 +223,6 @@ func (client *TLSClient) performClientHandshake() {
 		//fmt.Println(clientHandshakeFinished)
 	}
 
-	// TODO extract sequence number as global parameter somehow + record type
 	additionalData := *coreUtils.MakeAdditionalData(client.clientSeqNumber, constants.RecordHandshake, client.tlsVersion)
 	encryptedContent := cryptoHelpers.Encrypt(client.securityParams.ClientKey, client.securityParams.ClientIV, clientHandshakeFinished.GetClientHandshakeFinishedPlaintextPayload(), additionalData)
 	client.clientSeqNumber += 1
