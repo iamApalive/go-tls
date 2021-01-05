@@ -218,7 +218,6 @@ func (client *TLSClient) performClientHandshake() {
 		os.Exit(1)
 	}
 
-	// TODO Compute client stuff -> Send To Server
 	clientHandshakeFinished, err := model.MakeClientHandshakeFinished(client.securityParams.ClientKey, client.securityParams.ClientIV, verifyData, client.tlsVersion, client.clientSeqNumber)
 	if err != nil {
 		log.Error(err)
