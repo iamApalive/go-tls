@@ -13,6 +13,7 @@ import (
 
 const (
 	AESGCM_NonceSize = 8
+	AuthenticationTagSize = 16
 )
 
 // TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 uses an AEAD cipher for authentication
@@ -72,13 +73,13 @@ func Decrypt(serverKey, serverIV, ciphertext []byte, additionalData *coreUtils.A
 	nonce, rest := ciphertext[:AESGCM_NonceSize], ciphertext[AESGCM_NonceSize:]
 	nonceIV := append(serverIV, nonce...)
 
+	// extend seqNumber to 8 bytes
 	additionalDataPayload := make([]byte, 7)
 	additionalDataPayload = append(additionalDataPayload, additionalData.SeqNumber)
 	additionalDataPayload = append(additionalDataPayload, additionalData.RecordType)
 	additionalDataPayload = append(additionalDataPayload, additionalData.TlsVersion[:]...)
 
-	// TODO wtf is 16?
-	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(rest) - 16))
+	contentBytesLength := helpers.ConvertIntToByteArray(uint16(len(rest) - AuthenticationTagSize))
 	additionalDataPayload = append(additionalDataPayload, contentBytesLength[:]...)
 
 	plaintext, err := gcmAuthenticator.Open(nil, nonceIV, rest, additionalDataPayload)
