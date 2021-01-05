@@ -273,7 +273,7 @@ func (client *TLSClient) readServerHandshakeFinished() {
 
 func (client *TLSClient) sendApplicationData() {
 	// TODO - Parameterize request data
-	requestData := "GET / HTTP/1.1\r\nHost: " + client.host + "\r\n\r\n"
+	requestData := "GET /ro/ HTTP/1.1\r\nHost: www." + client.host + "\r\n\r\n"
 
 	clientApplicationData, err := model.MakeApplicationData(client.securityParams.ClientKey, client.securityParams.ClientIV, []byte(requestData), client.tlsVersion, client.clientSeqNumber)
 	if err != nil {
@@ -285,28 +285,26 @@ func (client *TLSClient) sendApplicationData() {
 }
 
 func (client *TLSClient) receiveApplicationData() {
-	answer := client.readFromServer()
-	log.Debug(answer)
+	var result []byte
 
-	// TODO read in while
-	serverApplicationData, err := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
-	if err != nil {
-		log.Error(err)
-		client.Terminate()
-		os.Exit(1)
+	for {
+		answer := client.readFromServer()
+
+		serverApplicationData, err := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
+		if err != nil && serverApplicationData.RecordHeader.Type == constants.RecordEncryptedAlert {
+			break
+		} else if err != nil {
+			log.Error("TLS Error occurred. RecordType found: ", serverApplicationData.RecordHeader.Type)
+			break
+		}
+
+		result = append(result, serverApplicationData.Data...)
+		if string(result[len(result)-5:]) == "\r\n\r\n" {
+			break
+		}
+
+		client.serverSeqNumber += 1
 	}
-	client.serverSeqNumber += 1
-	log.Info("Plaintext: ", string(serverApplicationData.Data))
 
-	answer = client.readFromServer()
-	log.Debug(answer)
-
-	serverApplicationData, err = model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
-	if err != nil {
-		log.Error(err)
-		client.Terminate()
-		os.Exit(1)
-	}
-	client.serverSeqNumber += 1
-	log.Info("Plaintext: ", string(serverApplicationData.Data))
+	fmt.Println("Plaintext: ", string(result))
 }

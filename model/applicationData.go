@@ -53,6 +53,10 @@ func ParseApplicationData(serverKey, serverIV, answer []byte, seqNum byte) (Appl
 	serverApplicationData.RecordHeader = ParseRecordHeader(answer[0:5])
 	offset += 5
 
+	if serverApplicationData.RecordHeader.Type != constants.RecordApplicationData {
+		return serverApplicationData, helpers.ApplicationDataMissingError()
+	}
+
 	serverApplicationData.Payload = answer[offset:]
 
 	additionalData := coreUtils.MakeAdditionalData(seqNum, serverApplicationData.RecordHeader.Type, serverApplicationData.RecordHeader.ProtocolVersion)

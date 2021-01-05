@@ -28,7 +28,7 @@ func ParseServerHandshakeFinished(serverKey, serverIV, answer []byte, seqNum byt
 
 	if serverHandshakeFinished.RecordHeader.Type != constants.RecordHandshake {
 		log.Error("RecordType mismatch")
-		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedError()
+		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedMissingError()
 	}
 
 	encryptedContent := answer[offset:]
@@ -45,7 +45,7 @@ func ParseServerHandshakeFinished(serverKey, serverIV, answer []byte, seqNum byt
 
 	if serverHandshakeFinished.HandshakeHeader.MessageType != constants.HandshakeServerFinished {
 		log.Error("HandshakeType mismatch")
-		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedError()
+		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedMissingError()
 	}
 
 	serverHandshakeFinished.VerifyData = plaintext[offset:]
