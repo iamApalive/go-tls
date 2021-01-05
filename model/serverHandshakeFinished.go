@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -27,13 +28,16 @@ func ParseServerHandshakeFinished(serverKey, serverIV, answer []byte, seqNum byt
 
 	if serverHandshakeFinished.RecordHeader.Type != constants.RecordHandshake {
 		log.Error("RecordType mismatch")
-		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedError()
+		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedMissingError()
 	}
 
 	encryptedContent := answer[offset:]
 
 	additionalData := coreUtils.MakeAdditionalData(seqNum, serverHandshakeFinished.RecordHeader.Type, serverHandshakeFinished.RecordHeader.ProtocolVersion)
-	plaintext := cryptoHelpers.Decrypt(serverKey, serverIV, encryptedContent, additionalData)
+	plaintext, err := cryptoHelpers.Decrypt(serverKey, serverIV, encryptedContent, additionalData)
+	if err != nil {
+		return serverHandshakeFinished, answer, err
+	}
 
 	offset = 0
 	serverHandshakeFinished.HandshakeHeader = ParseHandshakeHeader(plaintext[offset : offset+4])
@@ -41,7 +45,7 @@ func ParseServerHandshakeFinished(serverKey, serverIV, answer []byte, seqNum byt
 
 	if serverHandshakeFinished.HandshakeHeader.MessageType != constants.HandshakeServerFinished {
 		log.Error("HandshakeType mismatch")
-		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedError()
+		return serverHandshakeFinished, answer, helpers.ServerHandshakeFinishedMissingError()
 	}
 
 	serverHandshakeFinished.VerifyData = plaintext[offset:]
@@ -67,10 +71,10 @@ func (serverHandshakeFinished *ServerHandshakeFinished) MarshalJSON() ([]byte, e
 	return json.Marshal(&struct {
 		RecordHeader    RecordHeader    `json:"RecordHeader"`
 		HandshakeHeader HandshakeHeader `json:"HandshakeHeader"`
-		VerifyData      []byte          `json:"VerifyData"`
+		VerifyData      string          `json:"VerifyData"`
 	}{
 		RecordHeader:    serverHandshakeFinished.RecordHeader,
 		HandshakeHeader: serverHandshakeFinished.HandshakeHeader,
-		VerifyData:      serverHandshakeFinished.VerifyData,
+		VerifyData:      hex.EncodeToString(serverHandshakeFinished.VerifyData),
 	})
 }

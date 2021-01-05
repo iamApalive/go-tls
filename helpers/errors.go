@@ -1,13 +1,14 @@
 package helpers
 
 type ParsingError struct {
-	IsServerHelloParsingError       bool
-	IsServerKeyExchangeMissingError bool
-	IsServerHelloMissingError       bool
-	IsServerCertificateMissingError bool
-	IsServerHelloDoneMissingError   bool
-	IsServerChangeCipherSpecError   bool
-	IsServerHandshakeFinishedError  bool
+	IsServerHelloParsingError             bool
+	IsServerKeyExchangeMissingError       bool
+	IsServerHelloMissingError             bool
+	IsServerCertificateMissingError       bool
+	IsServerHelloDoneMissingError         bool
+	IsServerChangeCipherSpecMissingError  bool
+	IsServerHandshakeFinishedMissingError bool
+	IsApplicationDataMissingError         bool
 }
 
 func (pe *ParsingError) Error() string {
@@ -26,11 +27,14 @@ func (pe *ParsingError) Error() string {
 	if pe.IsServerHelloDoneMissingError {
 		return "ServerHelloDone missing!"
 	}
-	if pe.IsServerChangeCipherSpecError {
+	if pe.IsServerChangeCipherSpecMissingError {
 		return "ServerChangeCipherSpec missing!"
 	}
-	if pe.IsServerHandshakeFinishedError {
+	if pe.IsServerHandshakeFinishedMissingError {
 		return "ServerHandshakeFinished missing!"
+	}
+	if pe.IsApplicationDataMissingError {
+		return "ApplicationData missing!"
 	}
 	return "Undefined error"
 }
@@ -55,10 +59,14 @@ func ServerHelloDoneMissingError() error {
 	return &ParsingError{IsServerHelloDoneMissingError: true}
 }
 
-func ServerChangeCipherSpecError() error {
-	return &ParsingError{IsServerChangeCipherSpecError: true}
+func ServerChangeCipherSpecMissingError() error {
+	return &ParsingError{IsServerChangeCipherSpecMissingError: true}
 }
 
-func ServerHandshakeFinishedError() error {
-	return &ParsingError{IsServerHandshakeFinishedError: true}
+func ServerHandshakeFinishedMissingError() error {
+	return &ParsingError{IsServerHandshakeFinishedMissingError: true}
+}
+
+func ApplicationDataMissingError() error {
+	return &ParsingError{IsApplicationDataMissingError: true}
 }

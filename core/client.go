@@ -191,45 +191,50 @@ func (client *TLSClient) readServerResponse() {
 }
 
 func (client *TLSClient) performClientHandshake() {
-	clientKeyExchange := model.MakeClientKeyExchange(client.tlsVersion, client.securityParams.Curve)
+	clientKeyExchange, err := model.MakeClientKeyExchange(client.tlsVersion, client.securityParams.Curve)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
+	}
 	client.securityParams.ClientKeyExchangePrivateKey = clientKeyExchange.PrivateKey
 	clientKeyExchangePayload := clientKeyExchange.GetClientKeyExchangePayload()
 	client.messages = append(client.messages, helpers.IgnoreRecordHeader(clientKeyExchangePayload)...)
 	if client.jsonVerbose {
-		// TODO - implement
-		//clientKeyExchange.SaveJSON()
+		clientKeyExchange.SaveJSON()
 	} else {
-		// TODO - implement
-		//fmt.Println(clientKeyExchange)
+		fmt.Println(clientKeyExchange)
 	}
 
 	clientChangeCipherSpec := model.MakeClientChangeCipherSpec(client.tlsVersion)
 	//clientChangeCipherSpec is not a handshake message, so it is not included in the hash input
 
+	// TODO maybe move this to MakeClientHandshakeFinished
 	data := cryptoHelpers.HashByteArray(client.cipherSuite.HashingAlgorithm, client.messages)
 	verifyData := cryptoHelpers.MakeVerifyData(&client.securityParams, data)
 	if verifyData == nil {
+		log.Error("Could not create VerifyData")
 		client.Terminate()
 		os.Exit(1)
 	}
 
-	// TODO Compute client stuff -> Send To Server
-	clientHandshakeFinished := model.MakeClientHandshakeFinished(verifyData, client.tlsVersion)
-	if client.jsonVerbose {
-		// TODO - implement
-		//clientHandshakeFinished.SaveJSON()
-	} else {
-		// TODO - implement
-		//fmt.Println(clientHandshakeFinished)
+	clientHandshakeFinished, err := model.MakeClientHandshakeFinished(client.securityParams.ClientKey, client.securityParams.ClientIV, verifyData, client.tlsVersion, client.clientSeqNumber)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
 	}
-
-	additionalData := *coreUtils.MakeAdditionalData(client.clientSeqNumber, constants.RecordHandshake, client.tlsVersion)
-	encryptedContent := cryptoHelpers.Encrypt(client.securityParams.ClientKey, client.securityParams.ClientIV, clientHandshakeFinished.GetClientHandshakeFinishedPlaintextPayload(), additionalData)
 	client.clientSeqNumber += 1
+
+	if client.jsonVerbose {
+		clientHandshakeFinished.SaveJSON()
+	} else {
+		fmt.Println(clientHandshakeFinished)
+	}
 
 	// Send ClientKeyExchange, ClientChangeCipherSpec, ClientHandshakeFinished on the same tcp connection
 	finalPayload := append(clientKeyExchangePayload, clientChangeCipherSpec.GetClientChangeCipherSpecPayload()...)
-	finalPayload = append(finalPayload, clientHandshakeFinished.GetClientHandshakeFinishedPayload(encryptedContent)...)
+	finalPayload = append(finalPayload, clientHandshakeFinished.GetClientHandshakeFinishedPayload()...)
 
 	client.sendToServer(finalPayload)
 }
@@ -267,25 +272,38 @@ func (client *TLSClient) readServerHandshakeFinished() {
 
 func (client *TLSClient) sendApplicationData() {
 	// TODO - Parameterize request data
-	requestData := "GET / HTTP/1.1\r\nHost: " + client.host + "\r\n\r\n"
+	requestData := "GET /ro/ HTTP/1.1\r\nHost: www." + client.host + "\r\n\r\n"
 
-	additionalData := *coreUtils.MakeAdditionalData(client.clientSeqNumber, constants.RecordApplicationData, client.tlsVersion)
-	clientApplicationData := model.MakeApplicationData(client.securityParams.ClientKey, client.securityParams.ClientIV, []byte(requestData), additionalData)
+	clientApplicationData, err := model.MakeApplicationData(client.securityParams.ClientKey, client.securityParams.ClientIV, []byte(requestData), client.tlsVersion, client.clientSeqNumber)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
+	}
 	client.sendToServer(clientApplicationData.GetPayload())
 }
 
 func (client *TLSClient) receiveApplicationData() {
-	answer := client.readFromServer()
-	log.Debug(answer)
+	var result []byte
 
-	serverApplicationData := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
-	client.serverSeqNumber += 1
-	log.Info("Plaintext: ", string(serverApplicationData.Data))
+	for {
+		answer := client.readFromServer()
 
-	answer = client.readFromServer()
-	log.Debug(answer)
+		serverApplicationData, err := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
+		if err != nil && serverApplicationData.RecordHeader.Type == constants.RecordEncryptedAlert {
+			break
+		} else if err != nil {
+			log.Error("TLS Error occurred. RecordType found: ", serverApplicationData.RecordHeader.Type)
+			break
+		}
 
-	serverApplicationData = model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
-	client.serverSeqNumber += 1
-	log.Info("Plaintext: ", string(serverApplicationData.Data))
+		result = append(result, serverApplicationData.Data...)
+		if string(result[len(result)-5:]) == "\r\n\r\n" {
+			break
+		}
+
+		client.serverSeqNumber += 1
+	}
+
+	fmt.Println("Plaintext: ", string(result))
 }

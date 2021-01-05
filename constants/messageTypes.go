@@ -4,6 +4,7 @@ const (
 	RecordHandshake        = 0x16
 	RecordChangeCipherSpec = 0x14
 	RecordApplicationData  = 0x17
+	RecordEncryptedAlert   = 0x15
 )
 
 const (

@@ -23,7 +23,7 @@ func ParseServerChangeCipherSpec(answer []byte) (ServerChangeCipherSpec, []byte,
 
 	if serverChangeCipherSpec.RecordHeader.Type != constants.RecordChangeCipherSpec {
 		log.Error("RecordType mismatch")
-		return serverChangeCipherSpec, answer, helpers.ServerChangeCipherSpecError()
+		return serverChangeCipherSpec, answer, helpers.ServerChangeCipherSpecMissingError()
 	}
 
 	serverChangeCipherSpec.Payload = answer[offset]

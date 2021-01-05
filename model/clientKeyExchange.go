@@ -3,9 +3,13 @@ package model
 import (
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
 type ClientKeyExchange struct {
@@ -16,16 +20,17 @@ type ClientKeyExchange struct {
 	PrivateKey      []byte
 }
 
-func MakeClientKeyExchange(tlsVersion [2]byte, curve elliptic.Curve) ClientKeyExchange {
+func MakeClientKeyExchange(tlsVersion [2]byte, curve elliptic.Curve) (ClientKeyExchange, error) {
+	clientKeyExchange := ClientKeyExchange{}
+
 	privateKey, privateKeyX, privateKeyY, err := elliptic.GenerateKey(curve, rand.Reader)
 	if err != nil {
-		// TODO throw error
 		log.Error("Failed to generate private key")
+		return clientKeyExchange, err
 	}
 
 	publicKey := elliptic.Marshal(curve, privateKeyX, privateKeyY)
 
-	clientKeyExchange := ClientKeyExchange{}
 	clientKeyExchange.PublicKeyLength = byte(len(publicKey))
 	clientKeyExchange.PublicKey = publicKey
 
@@ -43,7 +48,7 @@ func MakeClientKeyExchange(tlsVersion [2]byte, curve elliptic.Curve) ClientKeyEx
 	recordHeader.Length = clientKeyExchange.getRecordLength()
 	clientKeyExchange.RecordHeader = recordHeader
 
-	return clientKeyExchange
+	return clientKeyExchange, nil
 }
 
 func (clientKeyExchange ClientKeyExchange) getHandshakeHeaderLength() [3]byte {
@@ -80,4 +85,34 @@ func (clientKeyExchange ClientKeyExchange) GetClientKeyExchangePayload() []byte 
 	payload = append(payload, clientKeyExchange.PublicKey...)
 
 	return payload
+}
+
+func (clientKeyExchange ClientKeyExchange) SaveJSON() {
+	file, _ := os.OpenFile("ClientKeyExchange.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&clientKeyExchange)
+}
+
+func (clientKeyExchange ClientKeyExchange) String() string {
+	out := fmt.Sprintf("Client Key Exchange\n")
+	out += fmt.Sprint(clientKeyExchange.RecordHeader)
+	out += fmt.Sprint(clientKeyExchange.HandshakeHeader)
+	out += fmt.Sprintf("  PublicKeyLength.....: %6x\n", clientKeyExchange.PublicKeyLength)
+	out += fmt.Sprintf("  PublicKey.....: %6x\n", clientKeyExchange.PublicKey)
+	out += fmt.Sprintf("  PrivateKey....: %6x\n", clientKeyExchange.PrivateKey)
+	return out
+}
+
+func (clientKeyExchange *ClientKeyExchange) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader    RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader HandshakeHeader `json:"HandshakeHeader"`
+		PublicKey       string          `json:"PublicKey"`
+		PrivateKey      string          `json:"PrivateKey"`
+	}{
+		RecordHeader:    clientKeyExchange.RecordHeader,
+		HandshakeHeader: clientKeyExchange.HandshakeHeader,
+		PublicKey:       hex.EncodeToString(clientKeyExchange.PublicKey),
+		PrivateKey:      hex.EncodeToString(clientKeyExchange.PrivateKey),
+	})
 }

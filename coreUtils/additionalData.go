@@ -13,3 +13,7 @@ func MakeAdditionalData(seqNumber byte, recordType byte, tlsVersion [2]byte) *Ad
 		TlsVersion: tlsVersion,
 	}
 }
+
+func (additionalData *AdditionalData) GetPayload() {
+	//TODO implement this
+}
