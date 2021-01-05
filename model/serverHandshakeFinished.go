@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -70,10 +71,10 @@ func (serverHandshakeFinished *ServerHandshakeFinished) MarshalJSON() ([]byte, e
 	return json.Marshal(&struct {
 		RecordHeader    RecordHeader    `json:"RecordHeader"`
 		HandshakeHeader HandshakeHeader `json:"HandshakeHeader"`
-		VerifyData      []byte          `json:"VerifyData"`
+		VerifyData      string          `json:"VerifyData"`
 	}{
 		RecordHeader:    serverHandshakeFinished.RecordHeader,
 		HandshakeHeader: serverHandshakeFinished.HandshakeHeader,
-		VerifyData:      serverHandshakeFinished.VerifyData,
+		VerifyData:      hex.EncodeToString(serverHandshakeFinished.VerifyData),
 	})
 }

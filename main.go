@@ -12,7 +12,6 @@ func initLogger() {
 	})
 }
 
-// TODO dump each part of handshake to JSON file
 func main() {
 	initLogger()
 

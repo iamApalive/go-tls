@@ -96,5 +96,3 @@ func (serverHello *ServerHello) MarshalJSON() ([]byte, error) {
 		CompressionMethod: serverHello.CompressionMethod[0],
 	})
 }
-
-// TODO make parsing functions methods of ServerHello struct

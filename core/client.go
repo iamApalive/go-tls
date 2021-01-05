@@ -191,16 +191,19 @@ func (client *TLSClient) readServerResponse() {
 }
 
 func (client *TLSClient) performClientHandshake() {
-	clientKeyExchange := model.MakeClientKeyExchange(client.tlsVersion, client.securityParams.Curve)
+	clientKeyExchange, err := model.MakeClientKeyExchange(client.tlsVersion, client.securityParams.Curve)
+	if err != nil {
+		log.Error(err)
+		client.Terminate()
+		os.Exit(1)
+	}
 	client.securityParams.ClientKeyExchangePrivateKey = clientKeyExchange.PrivateKey
 	clientKeyExchangePayload := clientKeyExchange.GetClientKeyExchangePayload()
 	client.messages = append(client.messages, helpers.IgnoreRecordHeader(clientKeyExchangePayload)...)
 	if client.jsonVerbose {
-		// TODO - implement
-		//clientKeyExchange.SaveJSON()
+		clientKeyExchange.SaveJSON()
 	} else {
-		// TODO - implement
-		//fmt.Println(clientKeyExchange)
+		fmt.Println(clientKeyExchange)
 	}
 
 	clientChangeCipherSpec := model.MakeClientChangeCipherSpec(client.tlsVersion)
@@ -225,11 +228,9 @@ func (client *TLSClient) performClientHandshake() {
 	client.clientSeqNumber += 1
 
 	if client.jsonVerbose {
-		// TODO - implement
-		//clientHandshakeFinished.SaveJSON()
+		clientHandshakeFinished.SaveJSON()
 	} else {
-		// TODO - implement
-		//fmt.Println(clientHandshakeFinished)
+		fmt.Println(clientHandshakeFinished)
 	}
 
 	// Send ClientKeyExchange, ClientChangeCipherSpec, ClientHandshakeFinished on the same tcp connection
@@ -287,6 +288,7 @@ func (client *TLSClient) receiveApplicationData() {
 	answer := client.readFromServer()
 	log.Debug(answer)
 
+	// TODO read in while
 	serverApplicationData, err := model.ParseApplicationData(client.securityParams.ServerKey, client.securityParams.ServerIV, answer, client.serverSeqNumber)
 	if err != nil {
 		log.Error(err)

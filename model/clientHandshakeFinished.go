@@ -1,10 +1,14 @@
 package model
 
 import (
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/coreUtils"
 	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
 	"github.com/viorelyo/tlsExperiment/helpers"
+	"os"
 )
 
 type ClientHandshakeFinished struct {
@@ -56,4 +60,30 @@ func (clientHandshakeFinished ClientHandshakeFinished) GetClientHandshakeFinishe
 	payload = append(payload, clientHandshakeFinished.EncryptedContent...)
 
 	return payload
+}
+
+func (clientHandshakeFinished ClientHandshakeFinished) SaveJSON() {
+	file, _ := os.OpenFile("ClientHandshakeFinished.json", os.O_CREATE, os.ModePerm)
+	defer file.Close()
+	_ = json.NewEncoder(file).Encode(&clientHandshakeFinished)
+}
+
+func (clientHandshakeFinished ClientHandshakeFinished) String() string {
+	out := fmt.Sprintf("Client Handshake Finished\n")
+	out += fmt.Sprint(clientHandshakeFinished.RecordHeader)
+	out += fmt.Sprint(clientHandshakeFinished.HandshakeHeader)
+	out += fmt.Sprintf("  VerifyData.........: %6x\n", clientHandshakeFinished.VerifyData)
+	return out
+}
+
+func (clientHandshakeFinished *ClientHandshakeFinished) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		RecordHeader    RecordHeader    `json:"RecordHeader"`
+		HandshakeHeader HandshakeHeader `json:"HandshakeHeader"`
+		VerifyData      string          `json:"VerifyData"`
+	}{
+		RecordHeader:    clientHandshakeFinished.RecordHeader,
+		HandshakeHeader: clientHandshakeFinished.HandshakeHeader,
+		VerifyData:      hex.EncodeToString(clientHandshakeFinished.VerifyData),
+	})
 }

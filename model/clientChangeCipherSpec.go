@@ -14,7 +14,6 @@ func MakeClientChangeCipherSpec(tlsVersion [2]byte) ClientChangeCipherSpec {
 	clientChangeCipherSpec := ClientChangeCipherSpec{}
 
 	recordHeader := RecordHeader{}
-	//TODO record type as constant
 	recordHeader.Type = constants.RecordChangeCipherSpec
 	recordHeader.ProtocolVersion = tlsVersion
 	recordHeader.Length = helpers.ConvertIntToByteArray(uint16(1))

@@ -74,7 +74,6 @@ func ParseServerKeyExchange(answer []byte) (ServerKeyExchange, []byte, error) {
 	serverKeyExchange.HandshakeHeader = ParseHandshakeHeader(answer[offset : offset+4])
 	offset += 4
 
-	// TODO safety check for record header length + handshake type
 	if serverKeyExchange.HandshakeHeader.MessageType != constants.HandshakeServerKeyExchange {
 		return serverKeyExchange, answer, helpers.ServerKeyExchangeMissingError()
 	}
