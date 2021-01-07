@@ -11,6 +11,10 @@ import (
 	"os"
 )
 
+const (
+	verifyDataLength = 12
+)
+
 type ClientHandshakeFinished struct {
 	RecordHeader     RecordHeader
 	HandshakeHeader  HandshakeHeader
@@ -28,8 +32,7 @@ func MakeClientHandshakeFinished(clientKey, clientIV, verifyData []byte, tlsVers
 
 	handshakeHeader := HandshakeHeader{}
 	handshakeHeader.MessageType = constants.HandshakeClientFinished
-	// TODO check that the length is not hardcoded
-	handshakeHeader.MessageLength = [3]byte{0x00, 0x00, 0x0c} // length of verifyData = 12
+	handshakeHeader.MessageLength = helpers.ConvertIntTo3ByteArray(verifyDataLength)
 	clientHandshakeFinished.HandshakeHeader = handshakeHeader
 
 	clientHandshakeFinished.VerifyData = verifyData

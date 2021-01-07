@@ -29,6 +29,10 @@ func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
 	serverHello.RecordHeader = ParseRecordHeader(answer[0:5])
 	offset += 5
 
+	if serverHello.RecordHeader.Type != constants.RecordHandshake {
+		return serverHello, answer, helpers.ServerHelloMissingError()
+	}
+
 	serverHello.HandshakeHeader = ParseHandshakeHeader(answer[offset : offset+4])
 	offset += 4
 
@@ -50,7 +54,17 @@ func ParseServerHello(answer []byte) (ServerHello, []byte, error) {
 	copy(serverHello.CompressionMethod[:], answer[offset+37:offset+38])
 	offset += 38
 
+	// if there are unparsed bytes, try to read extension length
 	serverHelloLength := int(helpers.ConvertByteArrayToUInt16(serverHello.RecordHeader.Length))
+	if serverHelloLength != (offset - 5) { // 5 is the length of RecordHeader
+		var extensionLength [2]byte
+		copy(extensionLength[:], answer[offset:offset+2])
+		offset += 2
+		extensionLengthInt := int(helpers.ConvertByteArrayToUInt16(extensionLength))
+		offset += extensionLengthInt
+
+	}
+
 	if serverHelloLength != (offset - 5) { // 5 is the length of RecordHeader
 		return serverHello, answer, helpers.ServerHelloParsingError()
 	}

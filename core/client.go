@@ -63,12 +63,12 @@ func (client *TLSClient) Terminate() {
 	}
 }
 
-func (client *TLSClient) Execute() {
+func (client *TLSClient) Execute(request string) {
 	client.sendClientHello()
 	client.readServerResponse()
 	client.performClientHandshake()
 	client.readServerHandshakeFinished()
-	client.sendApplicationData()
+	client.sendApplicationData(request)
 	client.receiveApplicationData()
 }
 
@@ -270,9 +270,8 @@ func (client *TLSClient) readServerHandshakeFinished() {
 	}
 }
 
-func (client *TLSClient) sendApplicationData() {
-	// TODO - Parameterize request data
-	requestData := "GET /ro/ HTTP/1.1\r\nHost: www." + client.host + "\r\n\r\n"
+func (client *TLSClient) sendApplicationData(request string) {
+	requestData := request + client.host + "\r\n\r\n"
 
 	clientApplicationData, err := model.MakeApplicationData(client.securityParams.ClientKey, client.securityParams.ClientIV, []byte(requestData), client.tlsVersion, client.clientSeqNumber)
 	if err != nil {
