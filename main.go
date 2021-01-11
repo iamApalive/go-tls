@@ -15,9 +15,7 @@ func initLogger() {
 func main() {
 	initLogger()
 
-	client := core.MakeTLSClient("ubbcluj.ro", "TLS 1.2", false)
-	client.Execute()
+	client := core.MakeTLSClient("medium.com", "TLS 1.2", false)
+	client.Execute("GET / HTTP/1.1\r\nHost: www.")
 	client.Terminate()
 }
-
-// TODO cannot handle choose cipher suite

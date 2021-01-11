@@ -11,7 +11,6 @@ import (
 	"os"
 )
 
-// TODO maybe deserialize Certificate Info
 type Certificate struct {
 	Length      [3]byte
 	Content     []byte
@@ -23,16 +22,22 @@ func (certificate Certificate) String() string {
 	out += fmt.Sprintf("    Certificate Length.: %x\n", certificate.Length)
 	out += fmt.Sprintf("    Certificate........: %x\n", certificate.Content)
 	out += fmt.Sprintf("    Certificate Public Key........: %x\n", certificate.Certificate.PublicKey.(*rsa.PublicKey).N)
+	out += fmt.Sprintf("    Certificate Issuer............: %s\n", certificate.Certificate.Issuer)
+	out += fmt.Sprintf("    Signature Algorithm...........: %s\n", certificate.Certificate.SignatureAlgorithm)
 	return out
 }
 
 func (certificate *Certificate) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		Length  uint32 `json:"Length"`
-		Content string `json:"Content"`
+		Length             uint32 `json:"Length"`
+		Content            string `json:"Content"`
+		Issuer             string `json:"Issuer"`
+		SignatureAlgorithm string `json:"SignatureAlgorithm"`
 	}{
-		Length:  helpers.Convert3ByteArrayToUInt32(certificate.Length),
-		Content: hex.EncodeToString(certificate.Content),
+		Length:             helpers.Convert3ByteArrayToUInt32(certificate.Length),
+		Content:            hex.EncodeToString(certificate.Content),
+		Issuer:             certificate.Certificate.Issuer.String(),
+		SignatureAlgorithm: certificate.Certificate.SignatureAlgorithm.String(),
 	})
 }
 

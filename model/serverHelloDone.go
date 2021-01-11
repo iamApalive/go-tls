@@ -20,6 +20,10 @@ func ParseServerHelloDone(answer []byte) (ServerHelloDone, []byte, error) {
 	serverHelloDone.RecordHeader = ParseRecordHeader(answer[:5])
 	offset += 5
 
+	if serverHelloDone.RecordHeader.Type != constants.RecordHandshake {
+		return serverHelloDone, answer, helpers.ServerHelloDoneMissingError()
+	}
+
 	serverHelloDone.HandshakeHeader = ParseHandshakeHeader(answer[offset : offset+4])
 	offset += 4
 
