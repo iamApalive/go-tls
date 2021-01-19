@@ -15,7 +15,7 @@ func initLogger() {
 func main() {
 	initLogger()
 
-	client := core.MakeTLSClient("ubbcluj.ro", "TLS 1.2", true)
-	client.Execute("GET /ro/ HTTP/1.1\r\nHost: www.")
+	client := core.MakeTLSClient("tools.ietf.org", "TLS 1.2", false)
+	client.Execute("GET / HTTP/1.1\r\nHost: www.")
 	client.Terminate()
 }

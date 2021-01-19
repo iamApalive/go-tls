@@ -1,15 +1,14 @@
 package model
 
 import (
-	"crypto"
 	"crypto/rsa"
-	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/constants"
 	"github.com/viorelyo/tlsExperiment/coreUtils"
+	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
 	"github.com/viorelyo/tlsExperiment/helpers"
 	"os"
 )
@@ -53,7 +52,7 @@ func (signature *Signature) MarshalJSON() ([]byte, error) {
 		Length    uint16 `json:"Length"`
 		Content   string `json:"SignatureContent"`
 	}{
-		Algorithm: constants.GSignatureAlgorithms.GetAlgorithmForByteCode(signature.Algorithm),
+		Algorithm: constants.GSignatureAlgorithms.GetAlgorithmNameForByteCode(signature.Algorithm),
 		Length:    helpers.ConvertByteArrayToUInt16(signature.Length),
 		Content:   hex.EncodeToString(signature.Content),
 	})
@@ -110,11 +109,14 @@ func (serverKeyExchange ServerKeyExchange) VerifySignature(securityParams *coreU
 	verifySignatureData = append(verifySignatureData, serverKeyExchange.PublicKeyLength)
 	verifySignatureData = append(verifySignatureData, serverKeyExchange.PublicKey...)
 
-	hashed := sha1.Sum(verifySignatureData)
-	err := rsa.VerifyPKCS1v15(pubKey, crypto.SHA1, hashed[:], serverKeyExchange.Signature.Content)
-	if err != nil {
-		log.Error(err)
-		return false
+	algorithm := constants.GSignatureAlgorithms.GetAlgorithmForByteCode(serverKeyExchange.Signature.Algorithm)
+	if algorithm.IsPkcs1 {
+		hashed := cryptoHelpers.HashByteArray(algorithm.HashingAlgorithm, verifySignatureData)
+		err := rsa.VerifyPKCS1v15(pubKey, algorithm.HashCode, hashed[:], serverKeyExchange.Signature.Content)
+		if err != nil {
+			log.Error(err)
+			return false
+		}
 	}
 
 	return true
