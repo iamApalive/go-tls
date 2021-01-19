@@ -1,10 +1,15 @@
 package model
 
 import (
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/constants"
+	"github.com/viorelyo/tlsExperiment/coreUtils"
 	"github.com/viorelyo/tlsExperiment/helpers"
 	"os"
 )
@@ -94,6 +99,25 @@ func ParseServerKeyExchange(answer []byte) (ServerKeyExchange, []byte, error) {
 	serverKeyExchange.Signature, answer = ParseSignature(answer[offset:])
 
 	return serverKeyExchange, answer, nil
+}
+
+func (serverKeyExchange ServerKeyExchange) VerifySignature(securityParams *coreUtils.SecurityParams, pubKey *rsa.PublicKey) bool {
+	var verifySignatureData []byte
+	verifySignatureData = append(verifySignatureData, securityParams.ClientRandom[:]...)
+	verifySignatureData = append(verifySignatureData, securityParams.ServerRandom[:]...)
+	verifySignatureData = append(verifySignatureData, serverKeyExchange.Curve)
+	verifySignatureData = append(verifySignatureData, serverKeyExchange.CurveID[:]...)
+	verifySignatureData = append(verifySignatureData, serverKeyExchange.PublicKeyLength)
+	verifySignatureData = append(verifySignatureData, serverKeyExchange.PublicKey...)
+
+	hashed := sha1.Sum(verifySignatureData)
+	err := rsa.VerifyPKCS1v15(pubKey, crypto.SHA1, hashed[:], serverKeyExchange.Signature.Content)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	return true
 }
 
 func (serverKeyExchange ServerKeyExchange) SaveJSON() {

@@ -1,5 +1,9 @@
 package constants
 
+type SignatureAlgorithm struct {
+
+}
+
 type SignatureAlgorithmConverter struct {
 	SignatureAlgorithms map[string][2]byte
 }

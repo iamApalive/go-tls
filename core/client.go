@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/rsa"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/viorelyo/tlsExperiment/constants"
@@ -174,7 +175,12 @@ func (client *TLSClient) readServerResponse() {
 	}
 	client.securityParams.ServerKeyExchangePublicKey = serverKeyExchange.PublicKey
 	client.securityParams.Curve = constants.GCurves.GetCurveInfoForByteCode(serverKeyExchange.CurveID).Curve
-	// TODO verify signature: the computed signature for SHA256(client_hello_random + server_hello_random + curve_info + public_key)
+
+	if !serverKeyExchange.VerifySignature(&client.securityParams, serverCertificate.Certificates[0].Certificate.PublicKey.(*rsa.PublicKey)) {
+		log.Error("Could not verify signature!")
+		client.Terminate()
+		os.Exit(1)
+	}
 
 	serverHelloDone, _, err := model.ParseServerHelloDone(answer)
 	if err != nil {
