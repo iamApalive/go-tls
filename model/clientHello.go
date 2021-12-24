@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"github.com/viorelyo/tlsExperiment/constants"
-	"github.com/viorelyo/tlsExperiment/helpers"
+	"github.com/C0d5/go-tls/constants"
+	"github.com/C0d5/go-tls/helpers"
 	"os"
 )
 

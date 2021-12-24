@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/viorelyo/tlsExperiment/constants"
-	"github.com/viorelyo/tlsExperiment/helpers"
+	"github.com/C0d5/go-tls/constants"
+	"github.com/C0d5/go-tls/helpers"
 )
 
 type ClientChangeCipherSpec struct {

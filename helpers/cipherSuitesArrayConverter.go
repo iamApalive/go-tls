@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"github.com/viorelyo/tlsExperiment/constants"
+	"github.com/C0d5/go-tls/constants"
 )
 
 func ConvertByteArrayToCipherSuites(byteArray []byte) []string {

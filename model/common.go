@@ -3,8 +3,8 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/viorelyo/tlsExperiment/constants"
-	"github.com/viorelyo/tlsExperiment/helpers"
+	"github.com/C0d5/go-tls/constants"
+	"github.com/C0d5/go-tls/helpers"
 )
 
 type RecordHeader struct {

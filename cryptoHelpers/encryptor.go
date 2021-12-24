@@ -6,8 +6,8 @@ import (
 	"crypto/rand"
 	"errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/viorelyo/tlsExperiment/coreUtils"
-	"github.com/viorelyo/tlsExperiment/helpers"
+	"github.com/C0d5/go-tls/coreUtils"
+	"github.com/C0d5/go-tls/helpers"
 	"io"
 )
 

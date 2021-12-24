@@ -2,7 +2,7 @@ package main
 
 import (
 	log "github.com/sirupsen/logrus"
-	"github.com/viorelyo/tlsExperiment/core"
+	"github.com/C0d5/go-tls/core"
 )
 
 func initLogger() {

@@ -7,7 +7,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha512"
 	log "github.com/sirupsen/logrus"
-	"github.com/viorelyo/tlsExperiment/coreUtils"
+	"github.com/C0d5/go-tls/coreUtils"
 	"hash"
 )
 

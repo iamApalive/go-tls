@@ -4,10 +4,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/viorelyo/tlsExperiment/constants"
-	"github.com/viorelyo/tlsExperiment/coreUtils"
-	"github.com/viorelyo/tlsExperiment/cryptoHelpers"
-	"github.com/viorelyo/tlsExperiment/helpers"
+	"github.com/C0d5/go-tls/constants"
+	"github.com/C0d5/go-tls/coreUtils"
+	"github.com/C0d5/go-tls/cryptoHelpers"
+	"github.com/C0d5/go-tls/helpers"
 	"os"
 )
 
