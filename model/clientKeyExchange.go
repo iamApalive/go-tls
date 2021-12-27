@@ -51,6 +51,29 @@ func MakeClientKeyExchange(tlsVersion [2]byte, curve elliptic.Curve) (ClientKeyE
 	return clientKeyExchange, nil
 }
 
+func MakeClientKeyExchangeWithKeys(tlsVersion [2]byte, publicKey,privateKey [] byte) (ClientKeyExchange, error) {
+	clientKeyExchange := ClientKeyExchange{}
+
+	clientKeyExchange.PublicKeyLength = byte(len(publicKey))
+	clientKeyExchange.PublicKey = publicKey
+
+	clientKeyExchange.PrivateKey = privateKey
+
+	recordHeader := RecordHeader{}
+	recordHeader.Type = constants.RecordHandshake
+	recordHeader.ProtocolVersion = tlsVersion
+
+	handshakeHeader := HandshakeHeader{}
+	handshakeHeader.MessageType = constants.HandshakeClientKeyExchange
+	handshakeHeader.MessageLength = clientKeyExchange.getHandshakeHeaderLength()
+	clientKeyExchange.HandshakeHeader = handshakeHeader
+
+	recordHeader.Length = clientKeyExchange.getRecordLength()
+	clientKeyExchange.RecordHeader = recordHeader
+
+	return clientKeyExchange, nil
+}
+
 func (clientKeyExchange ClientKeyExchange) getHandshakeHeaderLength() [3]byte {
 	var length [3]byte
 
