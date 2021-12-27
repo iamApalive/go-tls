@@ -127,3 +127,14 @@ func MakeVerifyData(securityParams *coreUtils.SecurityParams, data []byte) []byt
 	prfForVersion()(out, masterSecret, clientFinishedLabel, data)
 	return out
 }
+
+// Returns the contents of the verify_data member of a client's Finished message.
+func MakeVerifyDataUsingKeys(sharedKey,clientRandom,serverRandom,data []byte) []byte {
+	masterSecret := MasterFromPreMasterSecret(sharedKey, clientRandom[:], serverRandom[:])
+	// securityParams.ClientMAC, securityParams.ServerMAC, securityParams.ClientKey, securityParams.ServerKey, securityParams.ClientIV, securityParams.ServerIV =
+	// 	KeysFromMasterSecret(masterSecret, securityParams.ClientRandom[:], securityParams.ServerRandom[:], macLength, keyLength, ivLength)
+
+	out := make([]byte, finishedVerifyLength)
+	prfForVersion()(out, masterSecret, clientFinishedLabel, data)
+	return out
+}
