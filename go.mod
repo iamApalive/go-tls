@@ -1,7 +1,7 @@
-module github.com/C0d5/go-tls
+module go-tls
 
 go 1.17
 
-require github.com/sirupsen/logrus v1.8.1
+require golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 
-require golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
+require golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
