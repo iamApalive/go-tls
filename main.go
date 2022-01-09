@@ -10,7 +10,7 @@ func main() {
 	log.SetFlags(log.Lshortfile)
 
 	conf := &tls.Config{
-		//InsecureSkipVerify: true,
+		InsecureSkipVerify: true,
 	}
 
 	conn := tls.Client(nil, conf)
