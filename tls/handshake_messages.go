@@ -300,6 +300,212 @@ func (m *clientHelloMsg) Marshal() []byte {
 	return m.raw
 }
 
+func (m *clientHelloMsg) marshal() []byte {
+	if m.raw != nil {
+		return m.raw
+	}
+
+	var b cryptobyte.Builder
+	b.AddUint8(typeClientHello)
+	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+		b.AddUint16(m.vers)
+		addBytesWithLength(b, m.random, 32)
+		b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes(m.sessionId)
+		})
+		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			for _, suite := range m.cipherSuites {
+				b.AddUint16(suite)
+			}
+		})
+		b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes(m.compressionMethods)
+		})
+
+		// If extensions aren't present, omit them.
+		var extensionsPresent bool
+		bWithoutExtensions := *b
+
+		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			if len(m.serverName) > 0 {
+				// RFC 6066, Section 3
+				b.AddUint16(extensionServerName)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddUint8(0) // name_type = host_name
+						b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+							b.AddBytes([]byte(m.serverName))
+						})
+					})
+				})
+			}
+			if m.ocspStapling {
+				// RFC 4366, Section 3.6
+				b.AddUint16(extensionStatusRequest)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint8(1)  // status_type = ocsp
+					b.AddUint16(0) // empty responder_id_list
+					b.AddUint16(0) // empty request_extensions
+				})
+			}
+			if len(m.supportedCurves) > 0 {
+				// RFC 4492, sections 5.1.1 and RFC 8446, Section 4.2.7
+				b.AddUint16(extensionSupportedCurves)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, curve := range m.supportedCurves {
+							b.AddUint16(uint16(curve))
+						}
+					})
+				})
+			}
+			if len(m.supportedPoints) > 0 {
+				// RFC 4492, Section 5.1.2
+				b.AddUint16(extensionSupportedPoints)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddBytes(m.supportedPoints)
+					})
+				})
+			}
+			if m.ticketSupported {
+				// RFC 5077, Section 3.2
+				b.AddUint16(extensionSessionTicket)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddBytes(m.sessionTicket)
+				})
+			}
+			if len(m.supportedSignatureAlgorithms) > 0 {
+				// RFC 5246, Section 7.4.1.4.1
+				b.AddUint16(extensionSignatureAlgorithms)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, sigAlgo := range m.supportedSignatureAlgorithms {
+							b.AddUint16(uint16(sigAlgo))
+						}
+					})
+				})
+			}
+			if len(m.supportedSignatureAlgorithmsCert) > 0 {
+				// RFC 8446, Section 4.2.3
+				b.AddUint16(extensionSignatureAlgorithmsCert)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, sigAlgo := range m.supportedSignatureAlgorithmsCert {
+							b.AddUint16(uint16(sigAlgo))
+						}
+					})
+				})
+			}
+			if m.secureRenegotiationSupported {
+				// RFC 5746, Section 3.2
+				b.AddUint16(extensionRenegotiationInfo)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddBytes(m.secureRenegotiation)
+					})
+				})
+			}
+			if len(m.alpnProtocols) > 0 {
+				// RFC 7301, Section 3.1
+				b.AddUint16(extensionALPN)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, proto := range m.alpnProtocols {
+							b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+								b.AddBytes([]byte(proto))
+							})
+						}
+					})
+				})
+			}
+			if m.scts {
+				// RFC 6962, Section 3.3.1
+				b.AddUint16(extensionSCT)
+				b.AddUint16(0) // empty extension_data
+			}
+			if len(m.supportedVersions) > 0 {
+				// RFC 8446, Section 4.2.1
+				b.AddUint16(extensionSupportedVersions)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, vers := range m.supportedVersions {
+							b.AddUint16(vers)
+						}
+					})
+				})
+			}
+			if len(m.cookie) > 0 {
+				// RFC 8446, Section 4.2.2
+				b.AddUint16(extensionCookie)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddBytes(m.cookie)
+					})
+				})
+			}
+			if len(m.keyShares) > 0 {
+				// RFC 8446, Section 4.2.8
+				b.AddUint16(extensionKeyShare)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, ks := range m.keyShares {
+							b.AddUint16(uint16(ks.group))
+							b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+								b.AddBytes(ks.data)
+							})
+						}
+					})
+				})
+			}
+			if m.earlyData {
+				// RFC 8446, Section 4.2.10
+				b.AddUint16(extensionEarlyData)
+				b.AddUint16(0) // empty extension_data
+			}
+			if len(m.pskModes) > 0 {
+				// RFC 8446, Section 4.2.9
+				b.AddUint16(extensionPSKModes)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddBytes(m.pskModes)
+					})
+				})
+			}
+			if len(m.pskIdentities) > 0 { // pre_shared_key must be the last extension
+				// RFC 8446, Section 4.2.11
+				b.AddUint16(extensionPreSharedKey)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, psk := range m.pskIdentities {
+							b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+								b.AddBytes(psk.label)
+							})
+							b.AddUint32(psk.obfuscatedTicketAge)
+						}
+					})
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, binder := range m.pskBinders {
+							b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+								b.AddBytes(binder)
+							})
+						}
+					})
+				})
+			}
+
+			extensionsPresent = len(b.BytesOrPanic()) > 2
+		})
+
+		if !extensionsPresent {
+			*b = bWithoutExtensions
+		}
+	})
+
+	m.raw = b.BytesOrPanic()
+	return m.raw
+}
+
 // marshalWithoutBinders returns the ClientHello through the
 // PreSharedKeyExtension.identities field, according to RFC 8446, Section
 // 4.2.11.2. Note that m.pskBinders must be set to slices of the correct length.
