@@ -1,21 +1,25 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/C0d5/go-tls/core"
+	"log"
+
+	"github.com/C0d5/go-tls/tls"
 )
 
-func initLogger() {
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-		ForceColors:   true,
-	})
-}
-
 func main() {
-	initLogger()
+	log.SetFlags(log.Lshortfile)
 
-	client := core.MakeTLSClient("tools.ietf.org", "TLS 1.2", false)
-	client.Execute("GET / HTTP/1.1\r\nHost: www.")
-	client.Terminate()
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	conn := tls.Client(nil, conf)
+
+	m, _, err := conn.MakeClientHello()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println(m.Marshal())
+
 }
